@@ -174,10 +174,10 @@
   }
   .lbl{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:var(--lw,62mm);height:var(--lh,80mm);padding:3mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;background:#fff;position:relative}
   .lbl .hd{font-size:6.2pt;font-weight:700;text-align:center;letter-spacing:.2px;border-bottom:.35mm solid #000;padding-bottom:1mm;margin-bottom:2mm}
-  .lbl .nm{font-size:18pt;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden}
+  .lbl .nm{font-size:18pt;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden;margin-top:2mm}
   .lbl .ap{font-size:14pt;font-weight:700;line-height:1.1;text-transform:uppercase;white-space:nowrap;overflow:hidden;margin-top:.8mm}
-  .lbl .eq{font-size:9.5pt;line-height:1.2;margin-top:2mm;max-height:8.5mm;overflow:hidden}
-  .lbl .rl{display:flex;align-items:center;justify-content:space-between;margin-top:2.5mm}
+  .lbl .eq{font-size:9.5pt;line-height:1.2;margin-top:6mm;max-height:8.5mm;overflow:hidden}
+  .lbl .rl{display:flex;align-items:center;justify-content:space-between;margin-top:6mm}
   .lbl .rl b{font-size:8.5pt;border:.5mm solid #000;border-radius:1.2mm;padding:1mm 3mm;letter-spacing:.3px}
   .lbl .rl b.doc{background:#000;color:#fff}
   .lbl .rl small{font-size:6.5pt;color:#444}
@@ -656,9 +656,7 @@
     let cy = y + pad;
 
     // cabecera
-    doc.setFont('helvetica','bold'); doc.setFontSize(6.2*u);
-    doc.text('OLIMPÍADA DE ROBÓTICA · EDICIÓN 13', x + w/2, cy + 2.3*u, {align:'center'});
-    cy += 4.2*u; doc.setLineWidth(0.35*u); doc.line(x+pad, cy, right, cy);
+    cy += 2*u;
 
     // nombre y apellido
     const nombre = cap((p.nombre||'').trim()), apellido = (p.apellido||'').trim().toUpperCase();
@@ -668,13 +666,13 @@
     fitText(doc, apellido, iw, 13*u, 8*u); doc.text(apellido, x+pad, cy);
 
     // equipo (hasta 2 líneas)
-    cy += 6.5*u; doc.setFont('helvetica','normal'); doc.setFontSize(8.5*u);
+    cy += 10*u; doc.setFont('helvetica','normal'); doc.setFontSize(9.5*u);
     const eqLines = doc.splitTextToSize((p.equipo||'').trim(), iw).slice(0,2);
     doc.text(eqLines, x+pad, cy);
     cy += eqLines.length*4*u;
 
     // rol: caja negra con texto blanco
-    cy += 2.5*u;
+    cy += 6*u;
     const rol = rolLabel(p.rol).toUpperCase();
     doc.setFont('helvetica','bold'); doc.setFontSize(8.5*u);
     const rw = doc.getTextWidth(rol) + 6*u, rh = 6.2*u;
@@ -728,7 +726,6 @@
     const comidas = settings.comidas !== false;
     const boxes = [0,1].map(i=>`<span><i></i>${ds[i]?`<em>${esc(ds[i].slice(0,2))}</em>`:''}</span>`).join('');
     return `<div class="lbl">
-      <div class="hd">OLIMPÍADA DE ROBÓTICA · EDICIÓN 13</div>
       <div class="nm">${esc(cap((p.nombre||'').trim()))}</div>
       <div class="ap">${esc((p.apellido||'').trim())}</div>
       <div class="eq">${esc(p.equipo||'')}</div>
