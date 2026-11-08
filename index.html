@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-1949">
+<html lang="es" data-ver="20261108-2000">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -149,7 +149,10 @@
   .field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);font-weight:600}
   .field input,.field select{font:inherit;font-size:14px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;width:120px;color:var(--ink);font-weight:600;background:#fff}
   .field input.wide{width:260px} .field select{width:auto}
-  .drop{border:2px dashed #c9c1aa;border-radius:16px;padding:24px;text-align:center;color:var(--muted);font-size:14px;cursor:pointer;background:#f6f1e5;transition:all .15s}
+  .drop{display:block;border:2px dashed #c9c1aa;border-radius:16px;padding:26px 20px;text-align:center;color:var(--muted);font-size:14px;cursor:pointer;background:#f6f1e5;transition:all .15s;margin:10px 0}
+  .drop .ic{font-size:30px;line-height:1;margin-bottom:8px}
+  .drop .fake{display:inline-block;margin-top:12px;background:var(--forest);color:#fff;font-weight:700;border-radius:999px;padding:9px 16px;font-size:13.5px}
+  .drop b{color:var(--forest)}
   .drop:hover,.drop.over{border-color:var(--sage);background:var(--sage-soft)}
   .drop input{display:none}
   .prog{height:8px;background:var(--cream-2);border-radius:999px;overflow:hidden;margin-top:10px;display:none}
@@ -244,8 +247,10 @@
     <div class="row"><button class="lnk" id="btnTpl">Descargar planilla modelo (.csv)</button></div>
     <label class="drop" id="drop">
       <input type="file" id="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
-      <div><b>Arrastrá el archivo acá</b> o hacé clic para elegirlo</div>
-      <div class="note" style="margin-top:4px">.xlsx, .xls o .csv</div>
+      <div class="ic">📂</div>
+      <div><b>Subí acá el Tickets Report de RedTickets o tu planilla</b></div>
+      <div class="note" style="margin-top:4px">Arrastrá el archivo sobre este recuadro o usá el botón · .xlsx, .xls o .csv</div>
+      <span class="fake">Elegir archivo…</span>
     </label>
     <div id="previewWrap" style="display:none">
       <div class="preview" id="preview"></div>
@@ -269,7 +274,7 @@
     <p class="note">Aparecen como botones debajo del buscador. El día de cada grupo se puede cambiar desde su tarjeta.</p>
 
     <h3>3. Formato de la etiqueta</h3>
-    <p>Las etiquetas se generan como PDF listo para imprimir.</p>
+    <p>Al tocar "Imprimir etiquetas" salen directo en la impresora predeterminada (abriendo la plataforma con el lanzador).</p>
     <div class="row">
       <label class="field"><span>Ancho (mm)</span><input type="number" id="lw" min="30" max="210" step="1"></label>
       <label class="field"><span>Alto (mm)</span><input type="number" id="lh" min="20" max="297" step="1"></label>
