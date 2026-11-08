@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2027">
+<html lang="es" data-ver="">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -177,14 +177,14 @@
   .lbl{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:var(--lw,62mm);height:var(--lh,80mm);padding:3mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;background:#fff;position:relative}
   .lbl .hd{font-size:6.2pt;font-weight:700;text-align:center;letter-spacing:.2px;border-bottom:.35mm solid #000;padding-bottom:1mm;margin-bottom:2mm}
   .lbl .nm{font-size:18pt;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden;margin-top:1mm}
-  .lbl .ap{font-size:14pt;font-weight:700;line-height:1.1;text-transform:uppercase;white-space:nowrap;overflow:hidden;margin-top:.8mm}
+  .lbl .ap{font-size:14pt;font-weight:700;line-height:1.1;white-space:nowrap;overflow:hidden;margin-top:.8mm}
   .lbl .eq{font-size:9.5pt;line-height:1.2;margin-top:4mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .lbl .rl{display:flex;align-items:center;justify-content:space-between;margin-top:4mm}
   .lbl .rl b{font-size:8.5pt;border:.5mm solid #000;border-radius:1.2mm;padding:1mm 3mm;letter-spacing:.3px}
   .lbl .rl b.doc{background:#000;color:#fff}
   .lbl .rl small{font-size:6.5pt;color:#444}
   .lbl .rs{margin-top:2.5mm;border:.6mm solid #000;border-radius:1.2mm;padding:1.2mm 2mm;font-size:8pt;font-weight:700;line-height:1.2}
-  .lbl .cm{margin-top:4.5mm;display:flex;justify-content:space-between;text-align:center}
+  .lbl .cm{margin-top:8mm;display:flex;justify-content:space-between;text-align:center}
   .lbl .cm div{flex:1;font-size:8pt;font-weight:700;padding:0 1mm}
   .lbl .cm .bx{display:flex;justify-content:center;gap:1.2mm;margin-top:1.4mm}
   .lbl .cm i{display:block;width:5.5mm;height:5.5mm;border:.5mm solid #000;border-radius:.6mm}
@@ -349,6 +349,7 @@
   const isStaff = r => /staff|organiz|produc|prensa|invitad|operacion|voluntari|jurado|referee|juez|ceibal/.test(norm(r));
   const rolLabel = r => { const t=(r||'').toString().trim(); if(t) return t.charAt(0).toUpperCase()+t.slice(1); return 'Estudiante'; };
   const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
+  const capWords = s => (s||'').toLowerCase().replace(/(^|[\s\-'])(\p{L})/gu, (m,a,b)=>a+b.toUpperCase()).replace(/\b(De|Del|La|Las|Los|Y|Da|Dos|Van|Von|Di)\b/g, m=>m.toLowerCase()).replace(/^./, c=>c.toUpperCase());
   const hora = iso => iso ? new Date(iso).toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
   let toastT;
   function toast(msg, err){
@@ -733,7 +734,7 @@
     cy += 2*u;
 
     // nombre y apellido
-    const nombre = cap((p.nombre||'').trim()), apellido = (p.apellido||'').trim().toUpperCase();
+    const nombre = capWords((p.nombre||'').trim()), apellido = capWords((p.apellido||'').trim());
     cy += 8.5*u; doc.setFont('helvetica','bold');
     fitText(doc, nombre, iw, 17*u, 9*u); doc.text(nombre, x+pad, cy);
     cy += 7*u;
@@ -801,8 +802,8 @@
     const nd = Math.min(Math.max(p.ndias||2,1),3);
     const boxes = Array.from({length:nd},(_,i)=>`<span><i></i>${ds[i]?`<em>${esc(ds[i].slice(0,2))}</em>`:''}</span>`).join('');
     return `<div class="lbl">
-      <div class="nm">${esc(cap((p.nombre||'').trim()))}</div>
-      <div class="ap">${esc((p.apellido||'').trim())}</div>
+      <div class="nm">${esc(capWords((p.nombre||'').trim()))}</div>
+      <div class="ap">${esc(capWords((p.apellido||'').trim()))}</div>
       <div class="eq">${esc(p.equipo||'')}</div>
       <div class="rl"><b class="${isDoc(p.rol)?'doc':''}">${rolLabel(p.rol).toUpperCase()}</b><small>${p.dia?esc(diaLabel(p.dia)):''}</small></div>
       ${(p.restricciones||'').trim()?`<div class="rs">RESTRICCIÓN: ${esc(p.restricciones)}</div>`:''}
