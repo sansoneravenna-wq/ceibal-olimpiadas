@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2023">
+<html lang="es" data-ver="20261108-2027">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -313,6 +313,7 @@
   let db = null, downloads = null, userCap = null, canWrite = true, dbReady = false;
   let pending = [], unsub = null;
   let view = 'buscar', dayFilter = 'todos';
+  const expanded = new Set();
   let meId = null, meName = '';
   const nameCache = {};   // id -> nombre resuelto
   const myName = () => ($('#meName').value.trim() || meName || 'Acreditador');
@@ -358,14 +359,6 @@
   // ---------- almacenamiento ----------
   function localLoad(){ try{ teams = JSON.parse(localStorage.getItem('acred.teams')||'{}'); }catch(e){ teams={}; } }
   function localSave(){ try{ localStorage.setItem('acred.teams', JSON.stringify(teams)); }catch(e){} }
-  async function saveTeam(t){
-    if(db){ await db.doc('equipos/'+t.id).set(t); }
-    else { teams[t.id]=t; localSave(); render(); }
-  }
-  async function deleteTeam(id){
-    if(db){ await db.doc('equipos/'+id).delete(); }
-    else { delete teams[id]; localSave(); render(); }
-  }
   async function patchTeam(id, patch, btn){
     const t = teams[id]; if(!t) return;
     if(btn) btn.disabled=true;
@@ -373,49 +366,96 @@
     catch(err){ toast('No se pudo guardar: '+err.message, true); if(btn) btn.disabled=false; return false; }
   }
 
-  // ---------- standalone: sincronización por API (Cloudflare Worker + D1) ----------
+  // ---------- standalone: sincronización por API (Cloudflare Worker + D1), una fila por persona ----------
   const SYNC_DEFAULT = { url: 'https://acreditacion-ceibal.sansoneravenna.workers.dev', key: 'Ceibal2026-Acred-7Kq9mZ3pX' };
   function syncCfg(){
     try{ const o = JSON.parse(localStorage.getItem('acred.sync')||'null'); if(o && o.url) return o; }catch(e){}
     return SYNC_DEFAULT.url ? SYNC_DEFAULT : null;
   }
   let sync = null, since = 0, pollT = null, syncErr = 0;
+  const store = { t: {}, m: {} };          // filas crudas: t~<equipo> y m~<equipo>~<persona>
+  const META = ['equipo','transaccion','dia','acreditado','acreditadoEn','impreso','impresoEn'];
+  const metaOf = t => { const o={}; META.forEach(k=>o[k]=t[k]===undefined?null:t[k]); return o; };
+  const mkey = m => slug(m.codigo || (m.nombre+' '+m.apellido)) || 'p';
+  const sameJson = (x,y) => JSON.stringify(x)===JSON.stringify(y);
   async function api(method, path, body){
     const r = await fetch(sync.url.replace(/\/$/,'') + path, { method, headers: { 'Content-Type':'application/json', 'X-Key': sync.key }, body: body ? JSON.stringify(body) : undefined });
     if(!r.ok) throw new Error('API '+r.status+(r.status===401?' (clave incorrecta)':''));
     return r.json();
   }
+  async function runLimited(tasks, limit){
+    let i = 0; const errs = [];
+    await Promise.all(Array.from({length: Math.min(limit, tasks.length)}, async () => {
+      while(i < tasks.length){ const k = i++; try{ await tasks[k](); }catch(e){ errs.push(e); } }
+    }));
+    if(errs.length) throw errs[0];
+  }
+  function applyRow(row){
+    const id = row.id;
+    if(id.startsWith('t~')){ const tid = id.slice(2); if(row.deleted) delete store.t[tid]; else store.t[tid] = row.data; }
+    else if(id.startsWith('m~')){ if(row.deleted) delete store.m[id]; else store.m[id] = row.data; }
+  }
+  function rebuild(){
+    const next = {};
+    Object.entries(store.t).forEach(([tid, meta]) => { next[tid] = Object.assign({id: tid, miembros: []}, meta); });
+    Object.entries(store.m).forEach(([id, m]) => {
+      const tid = m.teamId || id.split('~')[1];
+      if(!next[tid]) next[tid] = {id: tid, equipo: m.equipo || tid, transaccion: null, dia: null, miembros: []};
+      const mm = Object.assign({}, m); delete mm.teamId; next[tid].miembros.push(mm);
+    });
+    Object.values(next).forEach(t => t.miembros.sort((a,b)=> (isDoc(b.rol)-isDoc(a.rol)) || ((a.ord??0)-(b.ord??0)) || (a.apellido||'').localeCompare(b.apellido||'')));
+    teams = next;
+  }
   async function poll(){
     try{
       const res = await api('GET', '/equipos?since='+since);
       let changed = false;
-      (res.rows||[]).forEach(row => {
-        if(row.deleted){ if(teams[row.id]){ delete teams[row.id]; changed = true; } }
-        else { teams[row.id] = Object.assign({id: row.id}, row.data); changed = true; }
-        if(row.updated > since) since = row.updated;
-      });
+      (res.rows||[]).forEach(row => { applyRow(row); changed = true; if(row.updated > since) since = row.updated; });
       if(!dbReady){ dbReady = true; changed = true; $('#syncMsg').textContent = 'Conectado ✓'; }
       if(syncErr){ syncErr = 0; toast('Conexión con la API restablecida'); }
-      if(changed) render();
+      if(changed){ rebuild(); render(); }
     }catch(err){
       syncErr++;
       if(syncErr === 3) toast('Sin conexión con la API: '+err.message, true);
     }
     pollT = setTimeout(poll, dbReady ? 3000 : 1500);
   }
+  async function syncSave(t){
+    const id = t.id, prev = teams[id];
+    const tasks = [];
+    const meta = metaOf(t);
+    if(!prev || !sameJson(metaOf(prev), meta)) tasks.push(async () => { await api('PUT', '/equipos/'+encodeURIComponent('t~'+id), meta); store.t[id] = meta; });
+    const keys = new Set();
+    (t.miembros||[]).forEach(m => {
+      const k = mkey(m); keys.add(k);
+      const rid = 'm~'+id+'~'+k;
+      const data = Object.assign({}, m, {teamId: id});
+      if(!sameJson(store.m[rid], data)) tasks.push(async () => { await api('PUT', '/equipos/'+encodeURIComponent(rid), data); store.m[rid] = data; });
+    });
+    Object.keys(store.m).filter(rid => rid.startsWith('m~'+id+'~') && !keys.has(rid.slice(('m~'+id+'~').length)))
+      .forEach(rid => tasks.push(async () => { await api('DELETE', '/equipos/'+encodeURIComponent(rid)); delete store.m[rid]; }));
+    try{ await runLimited(tasks, 6); } finally { rebuild(); render(); }
+  }
+  async function syncDelete(id){
+    const tasks = [async () => { await api('DELETE', '/equipos/'+encodeURIComponent('t~'+id)); delete store.t[id]; }];
+    Object.keys(store.m).filter(rid => rid.startsWith('m~'+id+'~')).forEach(rid => tasks.push(async () => { await api('DELETE', '/equipos/'+encodeURIComponent(rid)); delete store.m[rid]; }));
+    try{ await runLimited(tasks, 6); } finally { rebuild(); render(); }
+  }
+  async function saveTeam(t){
+    if(sync) await syncSave(t);
+    else { teams[t.id]=t; localSave(); render(); }
+  }
+  async function deleteTeam(id){
+    if(sync) await syncDelete(id);
+    else { delete teams[id]; localSave(); render(); }
+  }
   async function initStandalone(){
-    downloads = null; canWrite = true;
+    downloads = null; canWrite = true; db = null;
     sync = syncCfg();
     if(sync){
-      db = {
-        doc: p => { const id = p.split('/').pop(); return {
-          set: async d => { await api('PUT', '/equipos/'+encodeURIComponent(id), d); teams[id] = Object.assign({id}, d); render(); },
-          delete: async () => { await api('DELETE', '/equipos/'+encodeURIComponent(id)); delete teams[id]; render(); }
-        }; }
-      };
       $('#who').textContent = 'Sincronizado con la API en Cloudflare: todas las PCs ven los mismos datos.';
       poll();
-    } else { db = null; localLoad(); render(); $('#who').textContent = 'Sin sincronización: los datos se guardan solo en esta computadora. Configurá la API en el punto 4.'; }
+    } else { localLoad(); render(); $('#who').textContent = 'Sin sincronización: los datos se guardan solo en esta computadora. Configurá la API en el punto 4.'; }
   }
   { const o = syncCfg(); if(o){ $('#syncUrl').value = o.url; $('#syncKey').value = o.key || ''; } }
   $('#btnSync').addEventListener('click', () => {
@@ -480,7 +520,9 @@
     const n = (t.miembros||[]).length;
     const title = t.equipo;
     const docsTxt = docs.length && docs.length <= 3 ? 'Docente' + (docs.length>1?'s':'') + ': ' + docs.map(d=>`${d.nombre} ${d.apellido}`).join(', ') : '';
-    const rows = (t.miembros||[]).map((p,j)=>`
+    const n0 = (t.miembros||[]).length;
+    const onlyHits = q && !m.teamHit && m.hits.some(Boolean) && m.hits.filter(Boolean).length < n0 && !expanded.has(t.id);
+    const rows = (t.miembros||[]).map((p,j)=> (onlyHits && !m.hits[j]) ? '' : `
       <tr>
         <td class="chk"><input type="checkbox" data-i="${j}" checked></td>
         <td>${m.hits[j]?hl(p.nombre,q):esc(p.nombre)}</td>
@@ -488,8 +530,9 @@
         <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span>${p.ndias?` <span class="note">${p.ndias} día${p.ndias>1?'s':''}</span>`:''}</td>
         <td class="${p.restricciones?'rest':'rest none'}">${p.restricciones?esc(p.restricciones):'—'}</td>
         <td class="who">${p.acreditadoEn?`<b>✓ ${hora(p.acreditadoEn)}</b> · ${esc(porNombre(p.acreditadoPorId,p.acreditadoPor))}`:(p.impresoEn?`🖨 ${hora(p.impresoEn)} · ${esc(porNombre(p.impresoPorId,p.impresoPor))}`:'<span style="color:#a4ab9f">—</span>')}</td>
-      </tr>`).join('');
+      </tr>`).join('') + (onlyHits ? `<tr><td colspan="6" style="text-align:center;padding:10px"><button class="lnk" data-act="expand">Mostrar los ${n0} integrantes del equipo</button></td></tr>` : '');
     const nAcr = (t.miembros||[]).filter(p=>p.acreditadoEn).length;
+    const shown = onlyHits ? m.hits.filter(Boolean).length : n0;
     const dayOpts = ['<option value="">Sin día</option>'].concat(diasCfg().map(d=>`<option value="${esc(diaKey(d))}" ${t.dia===diaKey(d)?'selected':''}>${esc(d)}</option>`));
     if(t.dia && !diasCfg().some(d=>diaKey(d)===t.dia)) dayOpts.push(`<option value="${esc(t.dia)}" selected>${esc(diaLabel(t.dia))}</option>`);
     return `<div class="card ${t.impreso?'printed':''}" data-team="${esc(t.id)}" style="animation-delay:${Math.min(i,12)*35}ms">
@@ -511,7 +554,7 @@
       <div class="card-f">
         <div class="left">
           ${canWrite?`<select class="mini" data-act="dia">${dayOpts.join('')}</select>`:''}
-          <span><span class="cnt">${(t.miembros||[]).length}</span> seleccionado(s)</span>
+          <span><span class="cnt">${shown}</span> seleccionado(s)</span>
         </div>
         <div class="row" style="margin:0">
           ${canWrite?`<button class="btn sm ${t.impreso?'':'amber'}" data-act="impreso">${t.impreso?'Quitar "impreso"':'🏷️ Marcar impreso'}</button>`:''}
@@ -612,7 +655,7 @@
   // ---------- eventos ----------
   try{ $('#meName').value = localStorage.getItem('acred.me') || ''; }catch(e){}
   $('#meName').addEventListener('change', e => { try{ localStorage.setItem('acred.me', e.target.value.trim()); }catch(err){} });
-  $('#q').addEventListener('input', render);
+  $('#q').addEventListener('input', () => { expanded.clear(); render(); });
   $('#clr').addEventListener('click', ()=>{ $('#q').value=''; render(); $('#q').focus(); });
   document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#adminOverlay').classList.contains('open')){ $('#q').value=''; render(); $('#q').focus(); } });
   document.querySelector('.tabs').addEventListener('click', e => { const b=e.target.closest('.tab'); if(!b) return; view=b.dataset.view; render(); });
@@ -631,6 +674,7 @@
   $('#results').addEventListener('click', async e => {
     const b = e.target.closest('button[data-act]'); if(!b) return;
     const cardEl = b.closest('.card'), id = cardEl.dataset.team, t = teams[id]; if(!t) return;
+    if(b.dataset.act==='expand'){ expanded.add(id); render(); return; }
     if(b.dataset.act==='acred'){
       const miembros = (t.miembros||[]).map(m=>Object.assign({},m));
       if(t.acreditado){
@@ -846,7 +890,7 @@
       if(!out[id]) out[id] = {id, equipo: p.equipo || '', transaccion: p.grupo || null, dia:null, miembros:[], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
       if(p.grupo && out[id].transaccion && out[id].transaccion !== p.grupo && !String(out[id].transaccion).includes(p.grupo)) out[id].transaccion = out[id].transaccion + ', ' + p.grupo;
       if(p.dia && !out[id].dia) out[id].dia = p.dia;
-      out[id].miembros.push({nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: p.ndias||null, restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
+      out[id].miembros.push({ord: out[id].miembros.length, nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: p.ndias||null, restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
     });
     Object.values(out).forEach(t => {
       t.miembros.sort((a,b)=> (isDoc(b.rol)-isDoc(a.rol)) || a.apellido.localeCompare(b.apellido));
