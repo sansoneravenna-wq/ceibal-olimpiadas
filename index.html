@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2019">
+<html lang="es" data-ver="20261108-2020">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -239,7 +239,7 @@
     <p class="note" id="who"></p>
 
     <h3>1. Cargar participantes</h3>
-    <p><b>Reporte de RedTickets:</b> subí el "Tickets Report" tal cual se descarga (CSV). Se agrupa por <code># transacción</code>,
+    <p><b>Reporte de RedTickets:</b> subí el "Tickets Report" tal cual se descarga (CSV). Se agrupa por <code>Empresa</code> (nombre del equipo; si falta, por <code># transacción</code>),
       el rol en la etiqueta es el texto de <code>Cargo</code> tal cual (si está vacío, <code>Tipo de ticket</code>), los días que asiste de <code>Cant. personas</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Empresa</code> (o <code>Centro Educativo</code> si está vacía).
       Si el tipo de ticket o una columna <code>Día</code> dice "martes"/"miércoles", el día se asigna solo. Los tickets cancelados se omiten.</p>
     <p><b>Planilla propia:</b> una fila por persona con <code>Nombre</code>, <code>Apellido</code>, <code>Equipo</code>, <code>Rol</code>,
@@ -840,10 +840,10 @@
     const out = {};
     const byTx = rows.some(p => p.grupo);
     rows.forEach(p => {
-      const key = byTx ? (p.grupo || 'sin-transaccion') : (p.equipo || 'Sin equipo');
-      const id = byTx ? 'tx-'+slug(key) : slug(key);
-      if(!out[id]) out[id] = {id, equipo:'', transaccion: byTx ? p.grupo : null, dia:null, miembros:[], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
-      if(p.equipo && !out[id].equipo) out[id].equipo = p.equipo;
+      // agrupar por equipo (Empresa); si la fila no trae equipo, por transacción; si tampoco, "Sin equipo"
+      const id = p.equipo ? slug(p.equipo) : (byTx && p.grupo ? 'tx-'+slug(p.grupo) : 'sin-equipo');
+      if(!out[id]) out[id] = {id, equipo: p.equipo || '', transaccion: p.grupo || null, dia:null, miembros:[], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
+      if(p.grupo && out[id].transaccion && out[id].transaccion !== p.grupo && !String(out[id].transaccion).includes(p.grupo)) out[id].transaccion = out[id].transaccion + ', ' + p.grupo;
       if(p.dia && !out[id].dia) out[id].dia = p.dia;
       out[id].miembros.push({nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: p.ndias||null, restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
     });
@@ -860,7 +860,7 @@
       rows.slice(0,8).map(r=>`<tr><td>${esc(r.nombre)}</td><td>${esc(r.apellido)}</td><td>${esc(r.equipo)}</td><td>${esc(rolLabel(r.rol))}</td><td>${esc(diaLabel(r.dia)||'—')}</td><td>${esc(r.restricciones)}</td></tr>`).join('') +
       (rows.length>8?`<tr><td colspan="6" class="note">… y ${rows.length-8} más</td></tr>`:'') + `</tbody></table>`;
     const byTx = rows.some(r=>r.grupo);
-    let warn = `<div class="note" style="margin-top:8px">${rows.length} personas en ${Object.keys(g).length} grupos${byTx?' (agrupados por # transacción de RedTickets)':''}.</div>`;
+    let warn = `<div class="note" style="margin-top:8px">${rows.length} personas en ${Object.keys(g).length} equipos${byTx?' (agrupados por Empresa; por transacción si falta)':''}.</div>`;
     if(noRol) warn += `<div class="warnbox">${noRol} fila(s) sin rol: se cargan como Estudiante.</div>`;
     if(noEq && !byTx) warn += `<div class="warnbox">${noEq} fila(s) sin equipo: se agrupan como "Sin equipo".</div>`;
     if(noEq && byTx) warn += `<div class="warnbox">${noEq} fila(s) sin "Centro Educativo"/equipo: el grupo toma el nombre del docente.</div>`;
