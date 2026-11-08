@@ -1,0 +1,46 @@
+ACREDITACIÓN · Olimpíada de Ceibal — versión con impresión directa
+===================================================================
+
+Esta versión corre en Chrome, fuera del visor de Claude, en modo "impresión directa":
+al tocar "Imprimir etiquetas" la etiqueta sale en la impresora predeterminada,
+sin diálogos ni PDF.
+
+CÓMO ABRIRLA
+------------
+Windows:  doble clic en lanzadores/ABRIR-ACREDITACION.bat
+Mac:      doble clic en lanzadores/abrir-acreditacion.command
+          (la primera vez: clic derecho > Abrir. Si pide permiso en Terminal: chmod +x abrir-acreditacion.command)
+
+Se abre una ventana de Chrome propia (perfil separado, no toca tu Chrome habitual).
+Cerrá y volvé a abrir siempre con el lanzador: si se abre acreditacion.html a mano,
+la impresión vuelve a mostrar el diálogo.
+
+IMPRESORA
+---------
+- Dejá la Brother QL-800 como impresora predeterminada del sistema.
+- En el driver (Preferencias de impresión): Tamaño de papel 62mm, Longitud 70 mm,
+  Orientación Vertical, Cortar cada 1 etiqueta (como en la captura que tenés).
+- La primera vez, imprimí una etiqueta de prueba. Si Chrome recuerda otro tamaño de
+  papel, abrí acreditacion.html a mano una vez, imprimí con Ctrl+P eligiendo la Brother
+  y tamaño 62x70 (o 62mm), y a partir de ahí el modo directo usa esa configuración.
+
+DATOS COMPARTIDOS ENTRE PCs (Firebase, gratis)
+----------------------------------------------
+Sin configurar nada, los datos quedan solo en la PC donde se cargan (sirve para probar).
+Para que todas las mesas vean lo mismo en tiempo real:
+1. https://console.firebase.google.com > Agregar proyecto (ej. "acreditacion-ceibal").
+2. Menú Compilación > Firestore Database > Crear base de datos > modo de prueba > ubicación southamerica-east1.
+3. Reglas (pestaña Reglas): para el evento podés dejar
+      rules_version = '2';
+      service cloud.firestore { match /databases/{database}/documents {
+        match /equipos/{doc} { allow read, write: if true; } } }
+   (abierto a quien tenga la configuración; borrá el proyecto al terminar el evento).
+4. Configuración del proyecto (engranaje) > Tus apps > icono </> (Web) > registrar app >
+   copiá el objeto firebaseConfig { apiKey, authDomain, projectId, ... }.
+5. En la plataforma: ⚙ Datos y etiquetas > 4. Sincronización > pegá el JSON > Guardar y conectar.
+   Repetí el paso 5 en cada PC (o copiá la carpeta ya configurada... la config se guarda por PC).
+
+CARGA DE DATOS
+--------------
+Igual que en la versión web: ⚙ > subir el Tickets Report de RedTickets.
+Nombre del acreditador: campo 👤 arriba a la derecha, en cada PC.

@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Acreditación · Olimpiadas de Ceibal</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+  :root{
+    --forest:#032e1f; --forest-2:#0b4a33; --sage:#5f8359; --sage-2:#7fa374; --sage-soft:#e3ebdd;
+    --cream:#f4efe3; --cream-2:#ece5d3; --card:#fffdf8; --ink:#0d2419; --muted:#5f6b63; --line:#e2dccb;
+    --orange:#de6440; --orange-2:#c9532f; --mustard:#edb954; --mustard-bg:#fbf0d2;
+    --ok:#1f6b44; --ok-bg:#dcebdd; --warn:#b3361a; --warn-bg:#fde4dc;
+    --doc:#7a3b1e; --doc-bg:#fbe1d4; --est:#1f4d38; --est-bg:#dfeadf; --stf:#3b4a42; --stf-bg:#e6e4dc;
+    --prt:#7a5a0f; --prt-bg:#fbf0d2;
+    --r:18px; --shadow:0 1px 2px rgba(3,46,31,.05),0 10px 28px -14px rgba(3,46,31,.18);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;font-family:Manrope,system-ui,sans-serif;background:var(--cream);color:var(--ink);-webkit-font-smoothing:antialiased}
+  /* trama geométrica de fondo */
+  body::before{content:"";position:fixed;inset:0;z-index:-1;opacity:.35;pointer-events:none;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='520' height='420' viewBox='0 0 520 420'%3E%3Cg fill='none' stroke='%235f8359' stroke-opacity='.22' stroke-width='3'%3E%3Cpath d='M-20 90L120 40 260 110 400 30 560 80'/%3E%3Cpath d='M120 40L90 220 260 110 300 300 400 30'/%3E%3Cpath d='M90 220L-20 320M300 300L180 440M300 300L470 330 560 250M400 30L470 330'/%3E%3C/g%3E%3C/svg%3E");
+    background-size:520px 420px}
+  body::after{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(80% 60% at 50% -10%,rgba(95,131,89,.22),transparent 70%)}
+
+  /* header */
+  header{position:sticky;top:0;z-index:20;backdrop-filter:blur(14px);background:rgba(244,239,227,.82);border-bottom:1px solid rgba(226,220,203,.9)}
+  .hwrap{max-width:1040px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:40px;height:40px;border-radius:12px;background:var(--forest);display:grid;place-items:center;color:var(--mustard);font-weight:800;font-size:14px;letter-spacing:.5px;box-shadow:0 8px 18px -8px rgba(3,46,31,.7)}
+  .brand h1{margin:0;font-size:16px;font-weight:800;letter-spacing:-.2px;line-height:1.15;color:var(--forest)}
+  .brand h1 small{display:block;font-size:12px;font-weight:600;color:var(--muted);letter-spacing:0}
+  .chips{display:flex;gap:6px;flex-wrap:wrap}
+  .chip{font-size:12px;font-weight:700;padding:6px 11px;border-radius:999px;background:var(--card);border:1px solid var(--line);color:#3b4a42;display:flex;gap:6px;align-items:center;transition:transform .2s}
+  .chip b{font-variant-numeric:tabular-nums;color:var(--forest)}
+  .chip .dot{width:7px;height:7px;border-radius:50%;background:var(--sage)}
+  .chip.ok .dot{background:var(--ok)} .chip.prt .dot{background:var(--mustard)}
+  .chip.bump{transform:scale(1.08)}
+  .hbtn{font:inherit;font-size:13px;font-weight:700;border-radius:999px;padding:10px 16px;cursor:pointer;border:1px solid var(--forest);background:var(--forest);color:#fff;transition:all .15s}
+  .hbtn:hover{background:var(--forest-2);transform:translateY(-1px)}
+  .acred{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:13px}
+  .acred input{border:none;background:transparent;font:inherit;font-weight:700;color:var(--forest);width:150px;outline:none}
+  .acred input::placeholder{color:#a4ab9f;font-weight:500}
+  .acred:focus-within{border-color:var(--sage)}
+  .who{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+  .who b{color:var(--ok)}
+  .asis{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);animation:rise .3s ease both}
+  .asis .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:#f6f1e5}
+  .asis table td,.asis table th{white-space:nowrap}
+  .asis .wrap{overflow:auto}
+
+  main{max-width:1040px;margin:0 auto;padding:30px 18px 90px}
+
+  /* hero */
+  .hero{display:grid;grid-template-columns:1.15fr .85fr;gap:28px;align-items:center;margin-bottom:28px}
+  .hero .tag{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--forest);background:var(--sage-soft);border:1px solid #cfdcc8;padding:6px 12px;border-radius:999px;margin-bottom:14px}
+  .hero .tag i{width:8px;height:8px;border-radius:50%;background:var(--orange);display:inline-block}
+  .hero h2{margin:0;font-size:clamp(30px,4.6vw,46px);line-height:1.02;letter-spacing:-1.2px;font-weight:800;color:var(--forest)}
+  .hero h2 span{display:block;color:#8c9a8e;font-weight:700}
+  .hero p{margin:14px 0 0;font-size:15px;color:var(--muted);font-weight:500;max-width:520px;line-height:1.55}
+  .hero .art{border-radius:22px;overflow:hidden;box-shadow:0 30px 60px -30px rgba(3,46,31,.6);transform:rotate(-1.5deg);transition:transform .4s;animation:rise .6s ease both}
+  .hero .art:hover{transform:rotate(0) scale(1.02)}
+  .hero .art img{display:block;width:100%;height:auto}
+
+  /* tabs */
+  .tabs{display:flex;gap:4px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px;width:max-content;margin:0 auto 18px;box-shadow:var(--shadow)}
+  .tab{font:inherit;font-size:14px;font-weight:700;border:none;background:transparent;color:var(--muted);padding:9px 18px;border-radius:999px;cursor:pointer;display:flex;gap:8px;align-items:center;transition:all .2s}
+  .tab .n{font-size:11px;background:var(--cream-2);color:#3b4a42;padding:2px 7px;border-radius:999px;font-variant-numeric:tabular-nums}
+  .tab.on{background:var(--forest);color:#fff;box-shadow:0 8px 16px -8px rgba(3,46,31,.8)}
+  .tab.on .n{background:rgba(255,255,255,.18);color:#fff}
+
+  /* búsqueda */
+  .search{position:relative;margin-bottom:14px}
+  .search input{width:100%;font:inherit;font-size:21px;font-weight:600;padding:19px 60px 19px 56px;border:2px solid transparent;border-radius:999px;background:var(--card);outline:none;box-shadow:var(--shadow);transition:box-shadow .2s,border-color .2s;color:var(--ink)}
+  .search input::placeholder{color:#a4ab9f;font-weight:500}
+  .search input:focus{border-color:var(--sage);box-shadow:0 0 0 5px rgba(95,131,89,.18),var(--shadow)}
+  .search .ico{position:absolute;left:22px;top:50%;transform:translateY(-50%);width:22px;height:22px;color:var(--sage)}
+  .search .clr{position:absolute;right:14px;top:50%;transform:translateY(-50%);border:none;background:var(--cream-2);color:#3b4a42;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;display:none}
+  .search.has .clr{display:block}
+  input[type=search]::-webkit-search-cancel-button{-webkit-appearance:none;display:none}
+
+  /* días */
+  .days{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px;justify-content:center}
+  .day{font:inherit;font-size:15px;font-weight:800;padding:13px 24px;border-radius:999px;border:2px solid var(--line);background:var(--card);color:var(--forest);cursor:pointer;display:flex;gap:10px;align-items:center;transition:all .18s;box-shadow:var(--shadow)}
+  .day:hover{transform:translateY(-2px);border-color:var(--sage-2)}
+  .day .n{font-size:12px;font-weight:700;background:var(--cream-2);padding:3px 8px;border-radius:999px;color:#3b4a42;font-variant-numeric:tabular-nums}
+  .day.on{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 12px 24px -10px rgba(222,100,64,.8)}
+  .day.on .n{background:rgba(255,255,255,.25);color:#fff}
+  .day.ghost{border-style:dashed;font-weight:700;color:var(--muted);box-shadow:none;background:transparent}
+
+  .listhead{display:flex;justify-content:space-between;align-items:center;margin:0 6px 12px;color:var(--muted);font-size:13px;font-weight:700;letter-spacing:.3px;text-transform:uppercase}
+  .empty{text-align:center;color:var(--muted);padding:56px 10px;font-size:15px;background:rgba(255,253,248,.7);border:1px dashed #cfc7b2;border-radius:var(--r)}
+  .empty b{color:var(--forest)}
+  .empty .big{font-size:34px;margin-bottom:8px}
+
+  /* cards */
+  @keyframes rise{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);margin-bottom:14px;overflow:hidden;box-shadow:var(--shadow);animation:rise .32s cubic-bezier(.2,.7,.2,1) both;transition:box-shadow .2s,transform .2s;position:relative}
+  .card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--sage)}
+  .card.printed::before{background:var(--mustard)}
+  .card:hover{box-shadow:0 2px 4px rgba(3,46,31,.05),0 22px 44px -18px rgba(3,46,31,.3)}
+  .card-h{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px 12px 22px;flex-wrap:wrap}
+  .card-h .t{font-size:19px;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;color:var(--forest)}
+  .card-h .t small{font-weight:600;color:var(--muted);font-size:13px}
+  .card-h .sub{color:var(--muted);font-size:13px;margin-top:4px;font-weight:500}
+  .badges{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .pill{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:800;padding:4px 9px;border-radius:999px;letter-spacing:.3px;text-transform:uppercase;white-space:nowrap}
+  .pill.doc{background:var(--doc-bg);color:var(--doc)} .pill.est{background:var(--est-bg);color:var(--est)} .pill.stf{background:var(--stf-bg);color:var(--stf)}
+  .pill.ok{background:var(--ok-bg);color:var(--ok)} .pill.prt{background:var(--prt-bg);color:var(--prt)} .pill.dia{background:var(--sage-soft);color:var(--forest)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);text-align:left;padding:8px 14px;background:#f6f1e5;font-weight:800;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  th:first-child,td:first-child{padding-left:20px}
+  td{padding:10px 14px;border-top:1px solid #efe9db;vertical-align:middle;font-weight:500}
+  tr:first-child td{border-top:none}
+  td.chk,th.chk{width:44px;text-align:center}
+  input[type=checkbox]{width:17px;height:17px;accent-color:var(--forest);cursor:pointer}
+  mark{background:linear-gradient(transparent 45%,#f6d98a 45%);padding:0 1px;border-radius:2px}
+  .rest{color:var(--warn);font-weight:700} .rest.none{color:#a4ab9f;font-weight:400}
+  .card-f{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px 12px 20px;background:#f6f1e5;border-top:1px solid var(--line);flex-wrap:wrap}
+  .card-f .left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--muted);font-weight:600}
+  .btn{font:inherit;font-size:13.5px;font-weight:700;border-radius:999px;padding:9px 16px;cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--forest);transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+  .btn:hover{background:#fff;transform:translateY(-1px);border-color:var(--sage-2)}
+  .btn.primary{background:var(--orange);border-color:var(--orange);color:#fff;box-shadow:0 8px 16px -8px rgba(222,100,64,.8)}
+  .btn.primary:hover{background:var(--orange-2)}
+  .btn.amber{background:var(--mustard-bg);border-color:#e8cf86;color:var(--prt)}
+  .btn.green{background:var(--ok-bg);border-color:#b7d0ba;color:var(--ok)}
+  .btn.danger{color:var(--warn);border-color:#f0b5a4}
+  .btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+  .btn.sm{padding:7px 12px;font-size:12.5px}
+  select.mini{font:inherit;font-size:12.5px;font-weight:700;padding:7px 28px 7px 12px;border:1px solid var(--line);border-radius:999px;background:var(--card) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%235f6b63'/%3E%3C/svg%3E") no-repeat right 11px center;appearance:none;color:var(--forest);cursor:pointer}
+  .lnk{background:none;border:none;color:var(--forest-2);cursor:pointer;font:inherit;font-size:13px;font-weight:700;padding:0;text-decoration:underline}
+
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(10px);background:var(--forest);color:#fff;padding:12px 18px;border-radius:999px;font-size:14px;font-weight:600;box-shadow:0 12px 30px rgba(3,46,31,.35);opacity:0;pointer-events:none;transition:all .25s;z-index:50;max-width:90vw}
+  .toast.show{opacity:1;transform:translateX(-50%)}
+  .toast.err{background:var(--warn)}
+
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(3,46,31,.45);backdrop-filter:blur(3px);display:none;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto;z-index:40}
+  .overlay.open{display:flex}
+  .modal{background:var(--card);border-radius:22px;max-width:660px;width:100%;padding:26px;box-shadow:0 30px 80px rgba(3,46,31,.4);animation:rise .25s ease both}
+  .modal h2{margin:0 0 4px;font-size:20px;font-weight:800;color:var(--forest)}
+  .modal h3{margin:22px 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--sage);font-weight:800}
+  .modal p{margin:6px 0;font-size:14px;color:#3b4a42;line-height:1.5}
+  .modal code{background:var(--cream-2);padding:1px 5px;border-radius:4px;font-size:12.5px}
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0}
+  .field{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted);font-weight:600}
+  .field input,.field select{font:inherit;font-size:14px;padding:9px 12px;border:1px solid var(--line);border-radius:12px;width:120px;color:var(--ink);font-weight:600;background:#fff}
+  .field input.wide{width:260px} .field select{width:auto}
+  .drop{border:2px dashed #c9c1aa;border-radius:16px;padding:24px;text-align:center;color:var(--muted);font-size:14px;cursor:pointer;background:#f6f1e5;transition:all .15s}
+  .drop:hover,.drop.over{border-color:var(--sage);background:var(--sage-soft)}
+  .drop input{display:none}
+  .prog{height:8px;background:var(--cream-2);border-radius:999px;overflow:hidden;margin-top:10px;display:none}
+  .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--sage),var(--mustard));width:0;transition:width .15s}
+  .preview{max-height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;margin-top:10px;font-size:13px}
+  .preview td,.preview th{padding:5px 8px;white-space:nowrap}
+  .note{font-size:12.5px;color:var(--muted);font-weight:500}
+  .warnbox{background:var(--mustard-bg);border:1px solid #e8cf86;color:#6b4d05;padding:10px 12px;border-radius:12px;font-size:13px;margin-top:10px}
+  .topbtns{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+  @media (max-width:760px){ .hero{grid-template-columns:1fr} .hero .art{max-width:420px;transform:none} }
+  @media (max-width:640px){ .search input{font-size:17px;padding:15px 50px 15px 48px} td,th{padding:8px 8px} .day{padding:11px 18px;font-size:14px} .tabs{width:100%;justify-content:center} }
+
+  /* impresión directa */
+  #printArea{display:none}
+  @page{size:62mm 70mm;margin:0}
+  @media print{
+    html,body{background:#fff !important;margin:0;padding:0}
+    body::before,body::after,header,main,.overlay,.toast{display:none !important}
+    #printArea{display:block}
+    .lbl{page-break-after:always;break-after:page}
+  }
+  .lbl{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:62mm;height:70mm;padding:3mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;background:#fff;position:relative}
+  .lbl .hd{font-size:6.2pt;font-weight:700;text-align:center;letter-spacing:.2px;border-bottom:.35mm solid #000;padding-bottom:1mm;margin-bottom:2mm}
+  .lbl .nm{font-size:17pt;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden}
+  .lbl .ap{font-size:13pt;font-weight:700;line-height:1.1;text-transform:uppercase;white-space:nowrap;overflow:hidden;margin-top:.8mm}
+  .lbl .eq{font-size:8.5pt;line-height:1.2;margin-top:2mm;max-height:8.5mm;overflow:hidden}
+  .lbl .rl{display:flex;align-items:center;justify-content:space-between;margin-top:2.5mm}
+  .lbl .rl b{font-size:8.5pt;border:.5mm solid #000;border-radius:1.2mm;padding:1mm 3mm;letter-spacing:.3px}
+  .lbl .rl b.doc{background:#000;color:#fff}
+  .lbl .rl small{font-size:6.5pt;color:#444}
+  .lbl .rs{margin-top:2.5mm;border:.6mm solid #000;border-radius:1.2mm;padding:1.2mm 2mm;font-size:8pt;font-weight:700;line-height:1.2}
+  .lbl .cm{margin-top:auto;display:flex;justify-content:space-between;text-align:center}
+  .lbl .cm div{flex:1;font-size:6.8pt}
+  .lbl .cm .bx{display:flex;justify-content:center;gap:1.4mm;margin-top:1.2mm}
+  .lbl .cm i{display:block;width:4.6mm;height:4.6mm;border:.4mm solid #000}
+  .lbl .cm em{display:block;font-size:4.8pt;color:#555;font-style:normal;margin-top:.4mm}
+</style>
+</head>
+<body>
+<header>
+  <div class="hwrap">
+    <div class="brand">
+      <div class="logo">E13</div>
+      <h1>Acreditación<small>Olimpíada de Robótica, Programación y Videojuegos</small></h1>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="row" style="margin:0;gap:8px">
+      <label class="acred" title="Quién está acreditando en esta computadora">👤 <input id="meName" placeholder="Tu nombre (acreditador)" maxlength="40"></label>
+      <button class="hbtn" id="btnAdmin">⚙ Datos y etiquetas</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div>
+      <div class="tag"><i></i> Edición 13 · Territorios vivos</div>
+      <h2>Mesa de acreditación<span>buscá, imprimí, acreditá.</span></h2>
+      <p>Escribí el nombre o apellido del docente o de un alumno. Aparece el grupo completo con sus etiquetas listas para imprimir en el gafete.</p>
+    </div>
+    <div class="art"><img src="hero.jpg" alt="Olimpíada de Robótica, Programación y Videojuegos · Edición 13"></div>
+  </section>
+  <div class="tabs" role="tablist">
+    <button class="tab on" data-view="buscar">🔎 Buscar</button>
+    <button class="tab" data-view="impresos">🏷️ Ya impresos <span class="n" id="nImp">0</span></button>
+    <button class="tab" data-view="asistieron">✓ Asistieron <span class="n" id="nAsi">0</span></button>
+  </div>
+
+  <div class="search" id="searchBox">
+    <svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+    <input id="q" type="search" placeholder="Buscar docente, alumno, equipo o transacción…" autocomplete="off" autofocus>
+    <button class="clr" id="clr" title="Limpiar (Esc)">✕</button>
+  </div>
+
+  <div class="days" id="days"></div>
+
+  <div class="listhead"><span id="listTitle"></span><span id="listCount"></span></div>
+  <div id="results"></div>
+</main>
+
+<div class="overlay" id="adminOverlay">
+  <div class="modal">
+    <h2>Datos y etiquetas</h2>
+    <p class="note" id="who"></p>
+
+    <h3>1. Cargar participantes</h3>
+    <p><b>Reporte de RedTickets:</b> subí el "Tickets Report" tal cual se descarga (CSV). Se agrupa por <code># transacción</code>,
+      el rol sale de <code>Tipo de ticket</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Centro Educativo</code>.
+      Si el tipo de ticket o una columna <code>Día</code> dice "martes"/"miércoles", el día se asigna solo. Los tickets cancelados se omiten.</p>
+    <p><b>Planilla propia:</b> una fila por persona con <code>Nombre</code>, <code>Apellido</code>, <code>Equipo</code>, <code>Rol</code>,
+      <code>Día</code>, <code>Restricciones alimentarias</code> y opcionalmente <code>Código</code>.</p>
+    <div class="row"><button class="lnk" id="btnTpl">Descargar planilla modelo (.csv)</button></div>
+    <label class="drop" id="drop">
+      <input type="file" id="file" accept=".xlsx,.xls,.csv,.tsv,.txt">
+      <div><b>Arrastrá el archivo acá</b> o hacé clic para elegirlo</div>
+      <div class="note" style="margin-top:4px">.xlsx, .xls o .csv</div>
+    </label>
+    <div id="previewWrap" style="display:none">
+      <div class="preview" id="preview"></div>
+      <div id="importWarn"></div>
+      <div class="row" style="margin-top:12px">
+        <label class="field"><span>Modo</span>
+          <select id="mode">
+            <option value="merge">Agregar / actualizar grupos</option>
+            <option value="replace">Reemplazar todo</option>
+          </select></label>
+        <button class="btn primary" id="btnImport">Importar</button>
+        <span class="note" id="importMsg"></span>
+      </div>
+      <div class="prog" id="prog"><i></i></div>
+    </div>
+
+    <h3>2. Días del evento</h3>
+    <div class="row">
+      <label class="field"><span>Días (separados por coma)</span><input class="wide" id="diasCfg" placeholder="Martes, Miércoles"></label>
+    </div>
+    <p class="note">Aparecen como botones debajo del buscador. El día de cada grupo se puede cambiar desde su tarjeta.</p>
+
+    <h3>3. Formato de la etiqueta</h3>
+    <p>Las etiquetas se generan como PDF listo para imprimir.</p>
+    <div class="row">
+      <label class="field"><span>Ancho (mm)</span><input type="number" id="lw" min="30" max="210" step="1"></label>
+      <label class="field"><span>Alto (mm)</span><input type="number" id="lh" min="20" max="297" step="1"></label>
+      <label class="field"><span>Disposición</span>
+        <select id="layout">
+          <option value="label">Una etiqueta por hoja (impresora de etiquetas)</option>
+          <option value="a4">Varias por hoja A4 (etiquetas autoadhesivas)</option>
+        </select></label>
+      <label class="field" style="flex-direction:row;align-items:center;gap:8px;margin-top:18px"><input type="checkbox" id="comidas" style="width:17px;height:17px"> Casilleros de comidas (uno por día)</label>
+    </div>
+    <p class="note">Brother QL-800 con rollo continuo de 62 mm: dejá 62 × 70 mm y "Una etiqueta por hoja"; en el driver, Longitud 70 mm. Estas preferencias se guardan en este navegador.</p>
+
+    <h3>4. Sincronización entre computadoras (Firebase)</h3>
+    <p>Para que todas las PCs de la mesa vean lo mismo, pegá acá la configuración de tu proyecto Firebase (Firestore). Sin esto, los datos quedan solo en esta computadora.</p>
+    <div class="row"><textarea id="fbCfg" rows="4" style="width:100%;font:12px monospace;border:1px solid var(--line);border-radius:10px;padding:8px" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","appId":"..."}'></textarea></div>
+    <div class="row"><button class="btn sm" id="btnFb">Guardar y conectar</button><span class="note" id="fbMsg"></span></div>
+    <h3>5. Zona peligrosa</h3>
+    <div class="row">
+      <button class="btn danger sm" id="btnWipe">Borrar todos los datos</button>
+      <span class="note" id="wipeMsg"></span>
+    </div>
+
+    <div class="topbtns"><button class="btn" id="btnClose">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="printArea"></div>
+
+<script>
+(() => {
+  // ---------- estado ----------
+  let teams = {};   // id -> {id, equipo, transaccion, dia, miembros[], acreditado, acreditadoEn, impreso, impresoEn}
+  let db = null, downloads = null, userCap = null, canWrite = true, dbReady = false;
+  let pending = [], unsub = null;
+  let view = 'buscar', dayFilter = 'todos';
+  let meId = null, meName = '';
+  const nameCache = {};   // id -> nombre resuelto
+  const myName = () => ($('#meName').value.trim() || meName || 'Acreditador');
+  const stamp = () => ({ en: new Date().toISOString(), porId: meId, por: myName() });
+  const fecha = iso => iso ? new Date(iso).toLocaleString('es-UY',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+  const porNombre = (id, fallback) => (id && nameCache[id]) || fallback || '';
+  async function resolveNames(ids){
+    if(!userCap || !ids.length) return;
+    try{ const ps = await userCap.profiles(ids); let changed=false;
+      ids.forEach(id => { const n = ps && ps[id] && ps[id].name; if(n && nameCache[id]!==n){ nameCache[id]=n; changed=true; } });
+      if(changed) render(); }catch(e){}
+  }
+  const $ = s => document.querySelector(s);
+  const settings = loadSettings();
+  const DIAS_ALL = ['lunes','martes','miercoles','jueves','viernes','sabado','domingo'];
+  const DIA_LABEL = {lunes:'Lunes',martes:'Martes',miercoles:'Miércoles',jueves:'Jueves',viernes:'Viernes',sabado:'Sábado',domingo:'Domingo'};
+
+  function loadSettings(){
+    const d = {lw:62, lh:70, layout:'label', dias:'Martes, Miércoles', comidas:true};
+    try{ const st=JSON.parse(localStorage.getItem('acred.settings')||'{}'); if(st.lw===90 && st.lh===55){ st.lw=62; st.lh=70; localStorage.setItem('acred.settings', JSON.stringify(st)); } }catch(e){}
+    try{ return Object.assign(d, JSON.parse(localStorage.getItem('acred.settings')||'{}')); }catch(e){ return d; }
+  }
+  function saveSettings(){ try{ localStorage.setItem('acred.settings', JSON.stringify(settings)); }catch(e){} }
+  const diasCfg = () => settings.dias.split(',').map(s=>s.trim()).filter(Boolean);
+  const diaKey = s => { const n=norm(s); const k=DIAS_ALL.find(d => n.includes(d)); return k || (n||null); };
+  const diaLabel = k => k ? (DIA_LABEL[k] || diasCfg().find(d=>norm(d)===k) || k) : null;
+
+  // ---------- utilidades ----------
+  const norm = s => (s??'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
+  const slug = s => norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80) || 'equipo';
+  const esc = s => (s??'').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const isDoc = r => /doc|prof|maestr|teacher|refer|adult|tutor/.test(norm(r));
+  const isStaff = r => /staff|organiz|produc|prensa|invitad/.test(norm(r));
+  const rolLabel = r => isDoc(r) ? 'Docente' : isStaff(r) ? 'Staff' : 'Estudiante';
+  const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
+  const hora = iso => iso ? new Date(iso).toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
+  let toastT;
+  function toast(msg, err){
+    const t=$('#toast'); t.textContent=msg; t.className='toast show'+(err?' err':'');
+    clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'), 3200);
+  }
+
+  // ---------- almacenamiento ----------
+  function localLoad(){ try{ teams = JSON.parse(localStorage.getItem('acred.teams')||'{}'); }catch(e){ teams={}; } }
+  function localSave(){ try{ localStorage.setItem('acred.teams', JSON.stringify(teams)); }catch(e){} }
+  async function saveTeam(t){
+    if(db){ await db.doc('equipos/'+t.id).set(t); }
+    else { teams[t.id]=t; localSave(); render(); }
+  }
+  async function deleteTeam(id){
+    if(db){ await db.doc('equipos/'+id).delete(); }
+    else { delete teams[id]; localSave(); render(); }
+  }
+  async function patchTeam(id, patch, btn){
+    const t = teams[id]; if(!t) return;
+    if(btn) btn.disabled=true;
+    try{ await saveTeam(Object.assign({}, t, patch)); return true; }
+    catch(err){ toast('No se pudo guardar: '+err.message, true); if(btn) btn.disabled=false; return false; }
+  }
+
+  // ---------- standalone: Firebase o localStorage ----------
+  let fdb = null;
+  function fbConfig(){ try{ return JSON.parse(localStorage.getItem('acred.firebase')||'null'); }catch(e){ return null; } }
+  async function initStandalone(){
+    downloads = null; canWrite = true;
+    const cfg = fbConfig();
+    if(cfg && window.firebase){
+      try{
+        if(!firebase.apps.length) firebase.initializeApp(cfg);
+        fdb = firebase.firestore();
+        db = { doc: p => ({ set: d => fdb.doc(p).set(d), delete: () => fdb.doc(p).delete() }) };
+        const timer = setTimeout(()=>{ if(!dbReady) toast('Todavía no se pudo conectar con Firebase…', true); }, 10000);
+        fdb.collection('equipos').onSnapshot(snap => {
+          const next = {}; snap.forEach(d => next[d.id] = Object.assign({id:d.id}, d.data()));
+          teams = next; if(!snap.metadata.fromCache){ dbReady = true; clearTimeout(timer); } render();
+        }, err => { clearTimeout(timer); toast('Error de Firebase: '+err.message, true); });
+        $('#who').textContent = 'Sincronizado con Firebase (proyecto '+(cfg.projectId||'')+'): todas las PCs ven los mismos datos.';
+        $('#fbMsg').textContent = 'Conectado ✓';
+      }catch(err){ db=null; fdb=null; toast('No se pudo iniciar Firebase: '+err.message, true); localLoad(); render(); }
+    } else { db=null; localLoad(); render(); $('#who').textContent = 'Sin sincronización: los datos se guardan solo en esta computadora. Configurá Firebase en el punto 4 para compartir entre PCs.'; }
+  }
+  $('#fbCfg').value = localStorage.getItem('acred.firebase') || '';
+  $('#btnFb').addEventListener('click', () => {
+    const v = $('#fbCfg').value.trim();
+    if(!v){ localStorage.removeItem('acred.firebase'); $('#fbMsg').textContent='Sincronización desactivada. Recargá la página.'; return; }
+    try{ const o = JSON.parse(v); if(!o.projectId) throw new Error('falta projectId'); localStorage.setItem('acred.firebase', JSON.stringify(o)); $('#fbMsg').textContent='Guardado. Recargando…'; setTimeout(()=>location.reload(), 600); }
+    catch(e){ $('#fbMsg').textContent='La configuración no es un JSON válido: '+e.message; }
+  });
+
+  // ---------- render ----------
+  function counts(){
+    const ts = Object.values(teams);
+    return {
+      grupos: ts.length,
+      personas: ts.reduce((a,t)=>a+(t.miembros||[]).length,0),
+      acreditados: ts.filter(t=>t.acreditado).length,
+      impresos: ts.filter(t=>t.impreso).length,
+      asistieron: ts.reduce((a,t)=>a+(t.miembros||[]).filter(m=>m.acreditadoEn||m.impresoEn).length,0),
+      porDia: ts.reduce((m,t)=>{ const k=t.dia||'_'; m[k]=(m[k]||0)+1; return m; },{})
+    };
+  }
+  let lastChips='';
+  function renderChips(c){
+    const html = `<span class="chip"><span class="dot"></span><b>${c.grupos}</b> grupos</span>
+      <span class="chip"><span class="dot"></span><b>${c.personas}</b> personas</span>
+      <span class="chip prt"><span class="dot"></span><b>${c.impresos}</b> impresos</span>
+      <span class="chip ok"><span class="dot"></span><b>${c.asistieron}</b> asistieron</span>`;
+    if(html!==lastChips){ $('#chips').innerHTML=html; lastChips=html; $('#chips').querySelectorAll('.chip').forEach(ch=>{ch.classList.add('bump'); setTimeout(()=>ch.classList.remove('bump'),250);}); }
+    $('#nImp').textContent = c.impresos; $('#nAsi').textContent = c.asistieron;
+  }
+  function renderDays(c){
+    const ds = diasCfg();
+    const btn = (k,label,n,cls='') => `<button class="day ${cls} ${dayFilter===k?'on':''}" data-day="${esc(k)}">${esc(label)} <span class="n">${n}</span></button>`;
+    let html = btn('todos','Todos',c.grupos);
+    ds.forEach(d => { const k=diaKey(d); html += btn(k, d, c.porDia[k]||0); });
+    const extra = Object.keys(c.porDia).filter(k => k!=='_' && !ds.some(d=>diaKey(d)===k));
+    extra.forEach(k => html += btn(k, diaLabel(k), c.porDia[k]));
+    if(c.porDia['_']) html += btn('_','Sin día',c.porDia['_'],'ghost');
+    $('#days').innerHTML = html;
+  }
+  function matchTeam(t, q){
+    const toks = norm(q).split(/\s+/).filter(Boolean);
+    if(!toks.length) return {teamHit:false, hits:(t.miembros||[]).map(()=>false), any:true};
+    const hay = m => norm(m.nombre+' '+m.apellido+' '+(m.codigo||''));
+    const teamHit = toks.every(k => norm(t.equipo+' '+(t.transaccion||'')).includes(k));
+    const hits = (t.miembros||[]).map(m => toks.every(k => hay(m).includes(k)));
+    return {teamHit, hits, any: teamHit || hits.some(Boolean)};
+  }
+  function hl(text, q){
+    const toks = norm(q).split(/\s+/).filter(Boolean);
+    if(!toks.length) return esc(text);
+    const chars = (text||'').toString().split('');
+    const flat = chars.map(c => norm(c) || c.toLowerCase()).join('');
+    const marks = new Array(chars.length).fill(false);
+    toks.forEach(k => { let i=0; while((i=flat.indexOf(k,i))>=0){ for(let j=i;j<i+k.length;j++) marks[j]=true; i+=k.length; } });
+    let out='', open=false;
+    chars.forEach((c,i)=>{ if(marks[i]&&!open){out+='<mark>';open=true;} if(!marks[i]&&open){out+='</mark>';open=false;} out+=esc(c); });
+    return out + (open?'</mark>':'');
+  }
+  function card(t, m, q, i){
+    const docs = (t.miembros||[]).filter(x=>isDoc(x.rol));
+    const alumnos = (t.miembros||[]).filter(x=>!isDoc(x.rol) && !isStaff(x.rol));
+    const title = docs.length ? docs.map(d=>`${d.nombre} ${d.apellido}`).join(', ') : t.equipo;
+    const rows = (t.miembros||[]).map((p,j)=>`
+      <tr>
+        <td class="chk"><input type="checkbox" data-i="${j}" checked></td>
+        <td>${m.hits[j]?hl(p.nombre,q):esc(p.nombre)}</td>
+        <td>${m.hits[j]?hl(p.apellido,q):esc(p.apellido)}</td>
+        <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span></td>
+        <td class="${p.restricciones?'rest':'rest none'}">${p.restricciones?esc(p.restricciones):'—'}</td>
+        <td class="who">${p.acreditadoEn?`<b>✓ ${hora(p.acreditadoEn)}</b> · ${esc(porNombre(p.acreditadoPorId,p.acreditadoPor))}`:(p.impresoEn?`🖨 ${hora(p.impresoEn)} · ${esc(porNombre(p.impresoPorId,p.impresoPor))}`:'<span style="color:#a4ab9f">—</span>')}</td>
+      </tr>`).join('');
+    const nAcr = (t.miembros||[]).filter(p=>p.acreditadoEn).length;
+    const dayOpts = ['<option value="">Sin día</option>'].concat(diasCfg().map(d=>`<option value="${esc(diaKey(d))}" ${t.dia===diaKey(d)?'selected':''}>${esc(d)}</option>`));
+    if(t.dia && !diasCfg().some(d=>diaKey(d)===t.dia)) dayOpts.push(`<option value="${esc(t.dia)}" selected>${esc(diaLabel(t.dia))}</option>`);
+    return `<div class="card ${t.impreso?'printed':''}" data-team="${esc(t.id)}" style="animation-delay:${Math.min(i,12)*35}ms">
+      <div class="card-h">
+        <div>
+          <div class="t">${esc(title)} <small>(${alumnos.length} alumno${alumnos.length===1?'':'s'})</small></div>
+          <div class="sub">Equipo: <b>${m.teamHit?hl(t.equipo,q):esc(t.equipo)}</b>${t.transaccion?` · Transacción ${m.teamHit?hl(String(t.transaccion),q):esc(t.transaccion)}`:''}</div>
+        </div>
+        <div class="badges">
+          ${t.dia?`<span class="pill dia">📅 ${esc(diaLabel(t.dia))}</span>`:''}
+          ${t.impreso?`<span class="pill prt">🏷️ Ya impreso ${hora(t.impresoEn)}</span>`:''}
+          ${nAcr?`<span class="pill ok">✓ ${nAcr===(t.miembros||[]).length?'Acreditado':nAcr+'/'+(t.miembros||[]).length+' acreditados'} ${hora(t.acreditadoEn)}</span>`:''}
+        </div>
+      </div>
+      <table>
+        <thead><tr><th class="chk"><input type="checkbox" class="all" checked title="Seleccionar todos"></th><th>Nombre</th><th>Apellido</th><th>Rol</th><th>Restricciones alimentarias</th><th>Asistencia</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <div class="card-f">
+        <div class="left">
+          ${canWrite?`<select class="mini" data-act="dia">${dayOpts.join('')}</select>`:''}
+          <span><span class="cnt">${(t.miembros||[]).length}</span> seleccionado(s)</span>
+        </div>
+        <div class="row" style="margin:0">
+          ${canWrite?`<button class="btn sm ${t.impreso?'':'amber'}" data-act="impreso">${t.impreso?'Quitar "impreso"':'🏷️ Marcar impreso'}</button>`:''}
+          ${canWrite?`<button class="btn sm ${t.acreditado?'':'green'}" data-act="acred">${t.acreditado?'Quitar acreditación':'✓ Acreditar seleccionados'}</button>`:''}
+          <button class="btn primary" data-act="print">🖨 Imprimir etiquetas</button>
+        </div>
+      </div>
+    </div>`;
+  }
+  function render(){
+    const c = counts();
+    renderChips(c); renderDays(c);
+    const q = $('#q').value.trim();
+    $('#searchBox').classList.toggle('has', !!q);
+    const box = $('#results');
+    document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
+    if(!c.grupos){
+      $('#listTitle').textContent=''; $('#listCount').textContent='';
+      box.innerHTML = `<div class="empty"><div class="big">📂</div><b>No hay participantes cargados.</b><br>Abrí <b>⚙ Datos y etiquetas</b> y subí el reporte de RedTickets o tu planilla.</div>`;
+      return;
+    }
+    if(view==='asistieron'){ renderAsistieron(q); return; }
+    let list = Object.values(teams);
+    if(view==='impresos') list = list.filter(t=>t.impreso);
+    if(dayFilter!=='todos') list = list.filter(t => dayFilter==='_' ? !t.dia : t.dia===dayFilter);
+    const searching = q.length>=2;
+    if(!searching && view==='buscar' && dayFilter==='todos'){
+      $('#listTitle').textContent=''; $('#listCount').textContent='';
+      box.innerHTML = `<div class="empty"><div class="big">🔎</div>Escribí al menos 2 letras para buscar<br><span class="note">o elegí un día para ver todos los grupos de esa jornada.</span></div>`;
+      return;
+    }
+    const found = list.map(t => ({t, m: matchTeam(t, searching?q:'')})).filter(x=>x.m.any)
+      .sort((a,b)=> (b.m.hits.filter(Boolean).length - a.m.hits.filter(Boolean).length) || a.t.equipo.localeCompare(b.t.equipo));
+    const where = (view==='impresos'?'Ya impresos':'Grupos') + (dayFilter==='todos'?'':' · '+(dayFilter==='_'?'Sin día':diaLabel(dayFilter)));
+    $('#listTitle').textContent = where + (searching?` · "${q}"`:'');
+    $('#listCount').textContent = `${found.length} grupo${found.length===1?'':'s'}`;
+    if(!found.length){ box.innerHTML = `<div class="empty"><div class="big">🤷</div>Sin resultados${searching?` para <b>${esc(q)}</b>`:''}${view==='impresos'?' en Ya impresos':''}.</div>`; return; }
+    box.innerHTML = found.slice(0,60).map(({t,m},i)=>card(t,m,searching?q:'',i)).join('') +
+      (found.length>60?`<div class="empty">Mostrando 60 de ${found.length}. Afiná la búsqueda.</div>`:'');
+  }
+
+  // ---------- asistieron ----------
+  function asistentes(q){
+    const toks = norm(q).split(/\s+/).filter(Boolean);
+    const out = [];
+    Object.values(teams).forEach(t => {
+      if(dayFilter!=='todos' && (dayFilter==='_' ? !!t.dia : t.dia!==dayFilter)) return;
+      (t.miembros||[]).forEach(m => {
+        if(!m.acreditadoEn && !m.impresoEn) return;
+        if(toks.length && !toks.every(k => norm(m.nombre+' '+m.apellido+' '+t.equipo+' '+(t.transaccion||'')+' '+(m.acreditadoPor||'')+' '+(m.impresoPor||'')).includes(k))) return;
+        out.push({t, m, when: m.acreditadoEn || m.impresoEn});
+      });
+    });
+    return out.sort((a,b)=> (b.when||'').localeCompare(a.when||''));
+  }
+  function renderAsistieron(q){
+    const rows = asistentes(q);
+    const ids = [...new Set(rows.flatMap(r=>[r.m.acreditadoPorId, r.m.impresoPorId]).filter(id => id && !nameCache[id]))];
+    if(ids.length) resolveNames(ids);
+    $('#listTitle').textContent = 'Asistieron' + (dayFilter==='todos'?'':' · '+(dayFilter==='_'?'Sin día':diaLabel(dayFilter))) + (q.length>=2?` · "${q}"`:'');
+    $('#listCount').textContent = `${rows.length} persona${rows.length===1?'':'s'}`;
+    if(!rows.length){ $('#results').innerHTML = `<div class="empty"><div class="big">🕐</div>Todavía nadie registrado${q?` para <b>${esc(q)}</b>`:''}.<br><span class="note">Al imprimir etiquetas o acreditar desde una tarjeta, la persona aparece acá con hora y acreditador.</span></div>`; return; }
+    const tr = rows.map(({t,m}) => `<tr>
+      <td>${esc(m.nombre)}</td><td>${esc(m.apellido)}</td>
+      <td><span class="pill ${isDoc(m.rol)?'doc':isStaff(m.rol)?'stf':'est'}">${rolLabel(m.rol)}</span></td>
+      <td>${esc(t.equipo)}</td><td>${esc(diaLabel(t.dia)||'—')}</td>
+      <td>${m.impresoEn?fecha(m.impresoEn):'—'}</td>
+      <td>${m.acreditadoEn?`<b style="color:var(--ok)">${fecha(m.acreditadoEn)}</b>`:'—'}</td>
+      <td>${esc(porNombre(m.acreditadoPorId,m.acreditadoPor) || porNombre(m.impresoPorId,m.impresoPor) || '—')}</td>
+    </tr>`).join('');
+    $('#results').innerHTML = `<div class="asis">
+      <div class="bar"><span class="note">Una fila por persona con etiqueta impresa en mesa o acreditada. El Excel respeta el día y la búsqueda actuales.</span>
+        <button class="btn primary sm" id="btnXlsx">⬇ Descargar Excel (${rows.length})</button></div>
+      <div class="wrap"><table><thead><tr><th>Nombre</th><th>Apellido</th><th>Rol</th><th>Equipo</th><th>Día</th><th>Hora impresión</th><th>Hora acreditación</th><th>Acreditado por</th></tr></thead><tbody>${tr}</tbody></table></div>
+    </div>`;
+    $('#btnXlsx').addEventListener('click', async e => {
+      const b=e.currentTarget; b.disabled=true;
+      try{ await exportXlsx(rows); }catch(err){ if(err && err.code==='declined') toast('Descarga cancelada'); else toast('No se pudo exportar: '+(err.message||err), true); }
+      b.disabled=false;
+    });
+  }
+  async function exportXlsx(rows){
+    const data = rows.map(({t,m}) => ({
+      'Nombre': m.nombre, 'Apellido': m.apellido, 'Rol': rolLabel(m.rol), 'Equipo': t.equipo, 'Transacción': t.transaccion||'', 'Día': diaLabel(t.dia)||'',
+      'Restricciones alimentarias': m.restricciones||'', 'Código ticket': m.codigo||'',
+      'Hora impresión': m.impresoEn ? fecha(m.impresoEn) : '', 'Impreso por': porNombre(m.impresoPorId,m.impresoPor),
+      'Hora acreditación': m.acreditadoEn ? fecha(m.acreditadoEn) : '', 'Acreditado por': porNombre(m.acreditadoPorId,m.acreditadoPor)
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = Object.keys(data[0]||{}).map(k => ({wch: Math.max(k.length+2, ...data.map(r => String(r[k]||'').length+2), 10)}));
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Asistieron');
+    const out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+    const d = new Date(), fname = `asistieron-${d.toISOString().slice(0,10)}${dayFilter!=='todos'?'-'+dayFilter:''}.xlsx`;
+    if(downloads){ await downloads.save({filename: fname, data: new Blob([out])}); toast(`Excel con ${rows.length} fila(s) descargado`); }
+    else { const url = URL.createObjectURL(new Blob([out])); const a=document.createElement('a'); a.href=url; a.download=fname; a.click(); }
+  }
+
+  // ---------- eventos ----------
+  try{ $('#meName').value = localStorage.getItem('acred.me') || ''; }catch(e){}
+  $('#meName').addEventListener('change', e => { try{ localStorage.setItem('acred.me', e.target.value.trim()); }catch(err){} });
+  $('#q').addEventListener('input', render);
+  $('#clr').addEventListener('click', ()=>{ $('#q').value=''; render(); $('#q').focus(); });
+  document.addEventListener('keydown', e => { if(e.key==='Escape' && !$('#adminOverlay').classList.contains('open')){ $('#q').value=''; render(); $('#q').focus(); } });
+  document.querySelector('.tabs').addEventListener('click', e => { const b=e.target.closest('.tab'); if(!b) return; view=b.dataset.view; render(); });
+  $('#days').addEventListener('click', e => { const b=e.target.closest('.day'); if(!b) return; dayFilter = (dayFilter===b.dataset.day && b.dataset.day!=='todos') ? 'todos' : b.dataset.day; render(); });
+
+  $('#results').addEventListener('change', async e => {
+    const el = e.target, cardEl = el.closest('.card'); if(!cardEl) return;
+    if(el.type==='checkbox'){
+      if(el.classList.contains('all')) cardEl.querySelectorAll('tbody input[type=checkbox]').forEach(c=>c.checked=el.checked);
+      cardEl.querySelector('.cnt').textContent = cardEl.querySelectorAll('tbody input:checked').length;
+    }
+    if(el.dataset.act==='dia'){
+      if(await patchTeam(cardEl.dataset.team, {dia: el.value||null}, el)) toast(el.value ? 'Día asignado: '+diaLabel(el.value) : 'Día quitado');
+    }
+  });
+  $('#results').addEventListener('click', async e => {
+    const b = e.target.closest('button[data-act]'); if(!b) return;
+    const cardEl = b.closest('.card'), id = cardEl.dataset.team, t = teams[id]; if(!t) return;
+    if(b.dataset.act==='acred'){
+      const miembros = (t.miembros||[]).map(m=>Object.assign({},m));
+      if(t.acreditado){
+        miembros.forEach(m => { m.acreditadoEn=null; m.acreditadoPorId=null; m.acreditadoPor=null; });
+        if(await patchTeam(id, {miembros, acreditado:false, acreditadoEn:null}, b)) toast('Acreditación quitada');
+      } else {
+        const idx = [...cardEl.querySelectorAll('tbody input:checked')].map(c=>+c.dataset.i);
+        if(!idx.length){ toast('Seleccioná al menos una persona', true); return; }
+        const s = stamp();
+        idx.forEach(i => { if(!miembros[i].acreditadoEn){ miembros[i].acreditadoEn=s.en; miembros[i].acreditadoPorId=s.porId; miembros[i].acreditadoPor=s.por; } });
+        const all = miembros.every(m=>m.acreditadoEn);
+        if(await patchTeam(id, {miembros, acreditado:all, acreditadoEn: all ? s.en : (t.acreditadoEn||null)}, b)) toast(`${idx.length} persona(s) acreditada(s) por ${s.por} ✓`);
+      }
+    }
+    if(b.dataset.act==='impreso'){
+      const on = !t.impreso;
+      if(await patchTeam(id, {impreso:on, impresoEn:on?new Date().toISOString():null}, b)) toast(on?'Marcado como ya impreso 🏷️':'Marca "impreso" quitada');
+    }
+    if(b.dataset.act==='print'){
+      const idx = [...cardEl.querySelectorAll('tbody input:checked')].map(c=>+c.dataset.i);
+      const people = idx.map(i => Object.assign({equipo:t.equipo, dia:t.dia, transaccion:t.transaccion}, t.miembros[i]));
+      if(!people.length){ toast('Seleccioná al menos una persona', true); return; }
+      b.disabled=true; const old=b.innerHTML; b.textContent='Generando…';
+      try{
+        await printLabels(people, t);
+        if(canWrite){
+          const s = stamp();
+          const miembros = (t.miembros||[]).map(m=>Object.assign({},m));
+          idx.forEach(i => { miembros[i].impresoEn=s.en; miembros[i].impresoPorId=s.porId; miembros[i].impresoPor=s.por; });
+          const patch = {miembros};
+          if(!t.impreso && idx.length===miembros.length){ patch.impreso=true; patch.impresoEn=s.en; }
+          await patchTeam(id, patch);
+        }
+      }
+      catch(err){ if(err && err.code==='declined') toast('Descarga cancelada'); else toast('No se pudo generar el PDF: '+(err.message||err), true); }
+      b.disabled=false; b.innerHTML=old;
+    }
+  });
+
+  // ---------- etiquetas PDF ----------
+  function fitText(doc, text, maxW, size, minSize){
+    doc.setFontSize(size);
+    while(doc.getTextWidth(text) > maxW && size > minSize){ size -= 0.5; doc.setFontSize(size); }
+    return size;
+  }
+  function drawLabel(doc, x, y, w, h, p){
+    // Diseñada para Brother QL-800: rollo continuo 62 mm, etiqueta 62 × 70 mm vertical, monocromo.
+    const u = w/62;                       // escala relativa al ancho de 62 mm
+    const pad = 3*u, iw = w - 2*pad, right = x + w - pad;
+    const K = 0;                          // negro
+    const docente = isDoc(p.rol), staff = isStaff(p.rol);
+    doc.setTextColor(K); doc.setDrawColor(K);
+    let cy = y + pad;
+
+    // cabecera
+    doc.setFont('helvetica','bold'); doc.setFontSize(6.2*u);
+    doc.text('OLIMPÍADA DE ROBÓTICA · EDICIÓN 13', x + w/2, cy + 2.3*u, {align:'center'});
+    cy += 4.2*u; doc.setLineWidth(0.35*u); doc.line(x+pad, cy, right, cy);
+
+    // nombre y apellido
+    const nombre = cap((p.nombre||'').trim()), apellido = (p.apellido||'').trim().toUpperCase();
+    cy += 8.5*u; doc.setFont('helvetica','bold');
+    fitText(doc, nombre, iw, 17*u, 9*u); doc.text(nombre, x+pad, cy);
+    cy += 7*u;
+    fitText(doc, apellido, iw, 13*u, 8*u); doc.text(apellido, x+pad, cy);
+
+    // equipo (hasta 2 líneas)
+    cy += 6.5*u; doc.setFont('helvetica','normal'); doc.setFontSize(8.5*u);
+    const eqLines = doc.splitTextToSize((p.equipo||'').trim(), iw).slice(0,2);
+    doc.text(eqLines, x+pad, cy);
+    cy += eqLines.length*4*u;
+
+    // rol: caja negra con texto blanco
+    cy += 2.5*u;
+    const rol = rolLabel(p.rol).toUpperCase();
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5*u);
+    const rw = doc.getTextWidth(rol) + 6*u, rh = 6.2*u;
+    if(docente){ doc.setFillColor(K); doc.roundedRect(x+pad, cy, rw, rh, 1.2*u, 1.2*u, 'F'); doc.setTextColor(255); }
+    else { doc.setLineWidth(0.5*u); doc.roundedRect(x+pad, cy, rw, rh, 1.2*u, 1.2*u, 'S'); doc.setTextColor(K); }
+    doc.text(rol, x+pad+3*u, cy+rh*0.7);
+    doc.setTextColor(K);
+    if(p.transaccion || p.dia){ doc.setFont('helvetica','normal'); doc.setFontSize(6.5*u); doc.setTextColor(90);
+      doc.text([p.dia?diaLabel(p.dia):'', p.transaccion?'#'+p.transaccion:''].filter(Boolean).join(' · '), right, cy+rh*0.7, {align:'right'}); doc.setTextColor(K); }
+    cy += rh;
+
+    // comidas: anclado abajo
+    const comidas = settings.comidas !== false;
+    const ds = diasCfg();
+    const nDias = Math.min(Math.max(ds.length,1), 3);
+    let mealsTop = y + h - pad;
+    if(comidas){
+      const box = 4.6*u, gap = 1.4*u, colW = iw/3;
+      const boxesY = y + h - pad - box - 3*u;          // casilleros
+      const labelY = boxesY - 1.4*u;                   // texto encima
+      doc.setFont('helvetica','normal'); doc.setFontSize(6.8*u); doc.setLineWidth(0.4*u);
+      ['Desayuno','Almuerzo','Merienda'].forEach((lab,i)=>{
+        const cx0 = x + pad + i*colW;
+        const totalW = nDias*box + (nDias-1)*gap;
+        const start = cx0 + (colW - totalW)/2;
+        doc.setFontSize(6.8*u); doc.text(lab, cx0 + colW/2, labelY, {align:'center'});
+        for(let d=0; d<nDias; d++){
+          const bx = start + d*(box+gap);
+          doc.rect(bx, boxesY, box, box, 'S');
+          if(nDias>1){ doc.setFontSize(4.8*u); doc.setTextColor(110); doc.text((ds[d]||'').slice(0,2), bx+box/2, boxesY+box+2.2*u, {align:'center'}); doc.setTextColor(K); }
+        }
+      });
+      mealsTop = labelY - 5.5*u;
+    }
+
+    // restricción alimentaria: entre el rol y las comidas
+    const r = (p.restricciones||'').trim();
+    if(r){
+      doc.setFont('helvetica','bold');
+      const fs = fitText(doc, 'RESTRICCIÓN: ' + r, iw - 4*u, 8*u, 5.5*u);
+      const lines = doc.splitTextToSize('RESTRICCIÓN: ' + r, iw - 4*u).slice(0,2);
+      const lh = fs*0.42, bh = lines.length*lh + 2.6*u;
+      let by = cy + 2.5*u;
+      if(by + bh > mealsTop) by = Math.max(cy + 1*u, mealsTop - bh);
+      doc.setLineWidth(0.6*u); doc.roundedRect(x+pad, by, iw, bh, 1.2*u, 1.2*u, 'S');
+      doc.text(lines, x+pad+2*u, by + 1.9*u + fs*0.3);
+    }
+  }
+  function labelHtml(p){
+    const ds = diasCfg(), n = Math.min(Math.max(ds.length,1),3);
+    const comidas = settings.comidas !== false;
+    const boxes = Array.from({length:n}, (_,i)=>`<span><i></i>${n>1?`<em>${esc((ds[i]||'').slice(0,2))}</em>`:''}</span>`).join('');
+    return `<div class="lbl">
+      <div class="hd">OLIMPÍADA DE ROBÓTICA · EDICIÓN 13</div>
+      <div class="nm">${esc(cap((p.nombre||'').trim()))}</div>
+      <div class="ap">${esc((p.apellido||'').trim())}</div>
+      <div class="eq">${esc(p.equipo||'')}</div>
+      <div class="rl"><b class="${isDoc(p.rol)?'doc':''}">${rolLabel(p.rol).toUpperCase()}</b><small>${[p.dia?diaLabel(p.dia):'', p.transaccion?'#'+p.transaccion:''].filter(Boolean).join(' · ')}</small></div>
+      ${(p.restricciones||'').trim()?`<div class="rs">RESTRICCIÓN: ${esc(p.restricciones)}</div>`:''}
+      ${comidas?`<div class="cm">${['Desayuno','Almuerzo','Merienda'].map(l=>`<div>${l}<div class="bx">${boxes}</div></div>`).join('')}</div>`:''}
+    </div>`;
+  }
+  function fitNames(){
+    document.querySelectorAll('#printArea .nm, #printArea .ap').forEach(el => {
+      let fs = parseFloat(getComputedStyle(el).fontSize);
+      while(el.scrollWidth > el.clientWidth && fs > 8){ fs -= 0.5; el.style.fontSize = fs+'px'; }
+    });
+  }
+  async function printLabels(people, team){
+    const area = $('#printArea');
+    area.innerHTML = people.map(labelHtml).join('');
+    // medir con el área visible fuera de pantalla
+    area.style.cssText = 'display:block;position:absolute;left:-9999px;top:0';
+    fitNames();
+    area.style.cssText = '';
+    await new Promise(r => setTimeout(r, 50));
+    window.print();
+    toast(`${people.length} etiqueta(s) enviadas a la impresora`);
+  }
+
+  // ---------- importación ----------
+  const HEAD = {
+    codigo: ['# ticket','codigo','código','qr','code','id ticket'],
+    grupo: ['# transaccion','transaccion','transacción','grupo','orden','compra'],
+    estado: ['estado'],
+    nombre: ['nombre','nombres','first','name'],
+    apellido: ['apellido','apellidos','last','surname'],
+    email: ['email','correo','mail'],
+    dia: ['dia','día','jornada','fecha del evento','turno'],
+    equipo: ['equipo','team','nombre del equipo','centro educativo','escuela','institucion','liceo','utu'],
+    rol: ['rol','tipo de ticket','tipo','role','perfil','categoria'],
+    restricciones: ['restric','alimentar','dieta','alergia','celiac']
+  };
+  function mapHeaders(headers){
+    const map = {};
+    headers.forEach((hRaw, i) => {
+      const h = norm(hRaw); if(!h) return;
+      for(const [k, alts] of Object.entries(HEAD)){
+        if(map[k]!==undefined) continue;
+        if(alts.some(a => h===norm(a) || h.includes(norm(a)))){ map[k]=i; break; }
+      }
+    });
+    return map;
+  }
+  function parseRows(aoa){
+    const rows = aoa.filter(r => r && r.some(c => (c??'').toString().trim()!==''));
+    const hi = rows.findIndex(r => { const n=r.map(c=>norm(c)); return n.some(c=>c.includes('nombre')) && n.some(c=>c.includes('apellido')); });
+    if(hi<0 || rows.length<hi+2) throw new Error('No encontré el encabezado con Nombre y Apellido.');
+    const headers = rows[hi].map(c=>(c??'').toString());
+    const map = mapHeaders(headers);
+    const redtickets = headers.some(h => norm(h)==='# ticket');
+    const data = rows.slice(hi+1);
+    if(map.nombre!==undefined && data.some(r => /@/.test((r[map.nombre]??'').toString()))){
+      const n=map.nombre, a=map.apellido, e=map.email;
+      map.email=n; map.nombre=a; map.apellido = e!==undefined ? e : a+1;
+    }
+    const missing = ['nombre','apellido'].concat(redtickets||map.grupo!==undefined?[]:['equipo']).filter(k=>map[k]===undefined);
+    if(missing.length) throw new Error('Faltan columnas: '+missing.join(', ')+'. Encabezados encontrados: '+headers.filter(Boolean).join(' | '));
+    const g = (r,k) => map[k]!==undefined ? (r[map[k]]??'').toString().trim() : '';
+    return data.map(r => {
+      const rol = g(r,'rol');
+      const diaRaw = g(r,'dia') || (DIAS_ALL.find(d=>norm(rol).includes(d)) ? rol : '');
+      const dk = diaRaw ? DIAS_ALL.find(d=>norm(diaRaw).includes(d)) || null : null;
+      return { nombre: g(r,'nombre'), apellido: g(r,'apellido'), equipo: g(r,'equipo'), rol,
+        dia: dk, restricciones: g(r,'restricciones'), codigo: g(r,'codigo'), grupo: g(r,'grupo'), estado: g(r,'estado') };
+    }).filter(p => (p.nombre || p.apellido) && !/cancel|anul|devuel|rechaz/.test(norm(p.estado)));
+  }
+  function groupRows(rows){
+    const out = {};
+    const byTx = rows.some(p => p.grupo);
+    rows.forEach(p => {
+      const key = byTx ? (p.grupo || 'sin-transaccion') : (p.equipo || 'Sin equipo');
+      const id = byTx ? 'tx-'+slug(key) : slug(key);
+      if(!out[id]) out[id] = {id, equipo:'', transaccion: byTx ? p.grupo : null, dia:null, miembros:[], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
+      if(p.equipo && !out[id].equipo) out[id].equipo = p.equipo;
+      if(p.dia && !out[id].dia) out[id].dia = p.dia;
+      out[id].miembros.push({nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
+    });
+    Object.values(out).forEach(t => {
+      t.miembros.sort((a,b)=> (isDoc(b.rol)-isDoc(a.rol)) || a.apellido.localeCompare(b.apellido));
+      if(!t.equipo){ const d = t.miembros.find(m=>isDoc(m.rol)) || t.miembros[0]; t.equipo = d ? `Equipo de ${d.nombre} ${d.apellido}`.trim() : 'Sin equipo'; }
+    });
+    return out;
+  }
+  function showPreview(rows){
+    const g = groupRows(rows);
+    const noRol = rows.filter(r=>!r.rol).length, noEq = rows.filter(r=>!r.equipo).length, noDia = Object.values(g).filter(t=>!t.dia).length;
+    $('#preview').innerHTML = `<table><thead><tr><th>Nombre</th><th>Apellido</th><th>Equipo</th><th>Rol</th><th>Día</th><th>Restricciones</th></tr></thead><tbody>` +
+      rows.slice(0,8).map(r=>`<tr><td>${esc(r.nombre)}</td><td>${esc(r.apellido)}</td><td>${esc(r.equipo)}</td><td>${esc(rolLabel(r.rol))}</td><td>${esc(diaLabel(r.dia)||'—')}</td><td>${esc(r.restricciones)}</td></tr>`).join('') +
+      (rows.length>8?`<tr><td colspan="6" class="note">… y ${rows.length-8} más</td></tr>`:'') + `</tbody></table>`;
+    const byTx = rows.some(r=>r.grupo);
+    let warn = `<div class="note" style="margin-top:8px">${rows.length} personas en ${Object.keys(g).length} grupos${byTx?' (agrupados por # transacción de RedTickets)':''}.</div>`;
+    if(noRol) warn += `<div class="warnbox">${noRol} fila(s) sin rol: se cargan como Estudiante.</div>`;
+    if(noEq && !byTx) warn += `<div class="warnbox">${noEq} fila(s) sin equipo: se agrupan como "Sin equipo".</div>`;
+    if(noEq && byTx) warn += `<div class="warnbox">${noEq} fila(s) sin "Centro Educativo"/equipo: el grupo toma el nombre del docente.</div>`;
+    if(noDia) warn += `<div class="warnbox">${noDia} grupo(s) sin día detectado: quedan en "Sin día" y se pueden asignar desde cada tarjeta.</div>`;
+    if(!rows.some(r=>r.restricciones)) warn += `<div class="warnbox">El archivo no trae columna de restricciones alimentarias: las etiquetas saldrán "Sin restricciones".</div>`;
+    $('#importWarn').innerHTML = warn;
+    $('#previewWrap').style.display='block';
+    $('#importMsg').textContent='';
+  }
+  async function readFile(file){
+    const buf = await file.arrayBuffer();
+    let wb;
+    if(/\.(csv|tsv|txt)$/i.test(file.name)){
+      let text = new TextDecoder('utf-8', {fatal:false}).decode(buf);
+      if(text.includes(String.fromCharCode(0xFFFD))) text = new TextDecoder('windows-1252').decode(buf);
+      wb = XLSX.read(text.replace(/^﻿/,''), {type:'string', raw:false});
+    } else { wb = XLSX.read(buf, {type:'array', raw:false}); }
+    return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], {header:1, defval:''});
+  }
+  async function handleFile(file){
+    if(!file) return;
+    try{ pending = parseRows(await readFile(file)); showPreview(pending); }
+    catch(err){ pending=[]; $('#previewWrap').style.display='none'; toast(err.message, true); }
+  }
+  $('#file').addEventListener('change', e => handleFile(e.target.files[0]));
+  const drop = $('#drop');
+  ['dragenter','dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave','drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => handleFile(e.dataTransfer.files[0]));
+
+  $('#btnImport').addEventListener('click', async () => {
+    if(!pending.length) return;
+    const g = groupRows(pending), mode = $('#mode').value;
+    const btn = $('#btnImport'); btn.disabled=true;
+    const prog = $('#prog'), bar = prog.querySelector('i'); prog.style.display='block';
+    const ids = Object.keys(g); let done=0;
+    try{
+      if(mode==='replace'){ for(const id of Object.keys(teams).filter(id => !g[id])) await deleteTeam(id); }
+      // conservar marcas y día ya asignado en grupos existentes
+      ids.forEach(id => { const o=teams[id]; if(o){
+        ['acreditado','acreditadoEn','impreso','impresoEn'].forEach(k=>g[id][k]=o[k]??g[id][k]); if(o.dia && !g[id].dia) g[id].dia=o.dia;
+        // conservar registros por persona (hora/acreditador) al reimportar
+        g[id].miembros.forEach(m => { const prev = (o.miembros||[]).find(x => (m.codigo && x.codigo===m.codigo) || (norm(x.nombre)===norm(m.nombre) && norm(x.apellido)===norm(m.apellido)));
+          if(prev) ['impresoEn','impresoPorId','impresoPor','acreditadoEn','acreditadoPorId','acreditadoPor'].forEach(k => { if(prev[k]) m[k]=prev[k]; }); });
+      } });
+      for(const id of ids){ await saveTeam(g[id]); done++; bar.style.width=Math.round(done/ids.length*100)+'%'; $('#importMsg').textContent=`${done}/${ids.length} grupos…`; }
+      $('#importMsg').textContent = `Listo: ${ids.length} grupos, ${pending.length} personas.`;
+      toast('Importación completa'); pending=[]; $('#file').value='';
+    }catch(err){ $('#importMsg').textContent='Error: '+err.message; toast('Error al importar: '+err.message, true); }
+    btn.disabled=false; setTimeout(()=>{ prog.style.display='none'; bar.style.width='0'; }, 1500);
+  });
+
+  $('#btnTpl').addEventListener('click', async () => {
+    const csv = '﻿Nombre,Apellido,Equipo,Rol,Día,Restricciones alimentarias,Código\nThiago,Toranza,Los Robots de Salto,Docente,Martes,,QR-0001\nMartina,Pérez,Los Robots de Salto,Estudiante,Martes,Celíaca,QR-0002\nJuan,Rodríguez,Los Robots de Salto,Estudiante,Martes,,QR-0003\n';
+    if(downloads){ try{ await downloads.save({filename:'planilla-modelo-acreditacion.csv', data: csv}); }catch(e){ if(e.code!=='declined') toast('No se pudo descargar: '+e.message, true); } }
+    else { try{ await navigator.clipboard.writeText(csv.slice(1)); toast('Modelo copiado al portapapeles.'); }catch(e){ toast('Columnas: Nombre, Apellido, Equipo, Rol, Día, Restricciones alimentarias, Código'); } }
+  });
+
+  let wipeArmed=false;
+  $('#btnWipe').addEventListener('click', async () => {
+    if(!wipeArmed){ wipeArmed=true; $('#wipeMsg').textContent='¿Seguro? Hacé clic de nuevo para borrar todo.'; setTimeout(()=>{wipeArmed=false; $('#wipeMsg').textContent='';}, 5000); return; }
+    wipeArmed=false; $('#btnWipe').disabled=true;
+    try{ for(const id of Object.keys(teams)) await deleteTeam(id); $('#wipeMsg').textContent='Datos borrados.'; toast('Todos los datos fueron borrados'); }
+    catch(err){ toast('Error: '+err.message, true); }
+    $('#btnWipe').disabled=!canWrite;
+  });
+
+  // ---------- modal y ajustes ----------
+  $('#btnAdmin').addEventListener('click', () => $('#adminOverlay').classList.add('open'));
+  $('#btnClose').addEventListener('click', () => { $('#adminOverlay').classList.remove('open'); $('#q').focus(); render(); });
+  $('#adminOverlay').addEventListener('click', e => { if(e.target.id==='adminOverlay') $('#btnClose').click(); });
+  $('#lw').value=settings.lw; $('#lh').value=settings.lh; $('#layout').value=settings.layout; $('#diasCfg').value=settings.dias; $('#comidas').checked = settings.comidas!==false;
+  $('#comidas').addEventListener('change', e => { settings.comidas = e.target.checked; saveSettings(); });
+  ['lw','lh','layout','diasCfg'].forEach(k => $('#'+k).addEventListener('change', e => {
+    if(k==='diasCfg'){ settings.dias = e.target.value || 'Martes, Miércoles'; }
+    else settings[k] = k==='layout' ? e.target.value : +e.target.value;
+    saveSettings(); render();
+  }));
+
+  // ---------- arranque ----------
+  initStandalone();
+})();
+</script>
+</body>
+</html>
