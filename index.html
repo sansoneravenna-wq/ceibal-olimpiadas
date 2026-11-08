@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2014">
+<html lang="es" data-ver="20261108-2017">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -240,7 +240,7 @@
 
     <h3>1. Cargar participantes</h3>
     <p><b>Reporte de RedTickets:</b> subí el "Tickets Report" tal cual se descarga (CSV). Se agrupa por <code># transacción</code>,
-      el rol sale de <code>Tipo de ticket</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Empresa</code> (o <code>Centro Educativo</code> si está vacía).
+      el rol sale de <code>Cargo</code> (o <code>Tipo de ticket</code>), los días que asiste de <code>Cant. personas</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Empresa</code> (o <code>Centro Educativo</code> si está vacía).
       Si el tipo de ticket o una columna <code>Día</code> dice "martes"/"miércoles", el día se asigna solo. Los tickets cancelados se omiten.</p>
     <p><b>Planilla propia:</b> una fila por persona con <code>Nombre</code>, <code>Apellido</code>, <code>Equipo</code>, <code>Rol</code>,
       <code>Día</code>, <code>Restricciones alimentarias</code> y opcionalmente <code>Código</code>.</p>
@@ -484,7 +484,7 @@
         <td class="chk"><input type="checkbox" data-i="${j}" checked></td>
         <td>${m.hits[j]?hl(p.nombre,q):esc(p.nombre)}</td>
         <td>${m.hits[j]?hl(p.apellido,q):esc(p.apellido)}</td>
-        <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span></td>
+        <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span>${p.ndias?` <span class="note">${p.ndias} día${p.ndias>1?'s':''}</span>`:''}</td>
         <td class="${p.restricciones?'rest':'rest none'}">${p.restricciones?esc(p.restricciones):'—'}</td>
         <td class="who">${p.acreditadoEn?`<b>✓ ${hora(p.acreditadoEn)}</b> · ${esc(porNombre(p.acreditadoPorId,p.acreditadoPor))}`:(p.impresoEn?`🖨 ${hora(p.impresoEn)} · ${esc(porNombre(p.impresoPorId,p.impresoPor))}`:'<span style="color:#a4ab9f">—</span>')}</td>
       </tr>`).join('');
@@ -595,7 +595,7 @@
   async function exportXlsx(rows){
     const data = rows.map(({t,m}) => ({
       'Nombre': m.nombre, 'Apellido': m.apellido, 'Rol': rolLabel(m.rol), 'Equipo': t.equipo, 'Transacción': t.transaccion||'', 'Día': diaLabel(t.dia)||'',
-      'Restricciones alimentarias': m.restricciones||'', 'Código ticket': m.codigo||'',
+      'Días que asiste': m.ndias||'', 'Restricciones alimentarias': m.restricciones||'', 'Código ticket': m.codigo||'',
       'Hora impresión': m.impresoEn ? fecha(m.impresoEn) : '', 'Impreso por': porNombre(m.impresoPorId,m.impresoPor),
       'Hora acreditación': m.acreditadoEn ? fecha(m.acreditadoEn) : '', 'Acreditado por': porNombre(m.acreditadoPorId,m.acreditadoPor)
     }));
@@ -716,7 +716,7 @@
     // comidas: anclado abajo
     const comidas = true;
     const ds = diasCfg();
-    const nDias = 2;
+    const nDias = Math.min(Math.max(p.ndias||2,1),3);
     let mealsTop = y + h - pad;
     if(comidas){
       const box = 6*u, gap = 1.2*u, colW = iw/3;
@@ -753,7 +753,8 @@
   function labelHtml(p){
     const ds = diasCfg(), n = Math.min(Math.max(ds.length,1),3);
     const comidas = true;
-    const boxes = [0,1].map(i=>`<span><i></i>${ds[i]?`<em>${esc(ds[i].slice(0,2))}</em>`:''}</span>`).join('');
+    const nd = Math.min(Math.max(p.ndias||2,1),3);
+    const boxes = Array.from({length:nd},(_,i)=>`<span><i></i>${ds[i]?`<em>${esc(ds[i].slice(0,2))}</em>`:''}</span>`).join('');
     return `<div class="lbl">
       <div class="nm">${esc(cap((p.nombre||'').trim()))}</div>
       <div class="ap">${esc((p.apellido||'').trim())}</div>
@@ -795,6 +796,8 @@
     dia: ['dia','día','jornada','fecha del evento','turno'],
     equipo: ['equipo','team','nombre del equipo','empresa','institucion'],
     equipo2: ['centro educativo','escuela','liceo','utu','colegio'],
+    cargo: ['cargo'],
+    ndias: ['cant. personas','cant personas','cantidad de personas','cantidad de dias','cant. dias','dias que asiste'],
     rol: ['rol','tipo de ticket','tipo','role','perfil','categoria'],
     restricciones: ['restric','alimentar','dieta','alergia','celiac']
   };
@@ -825,10 +828,11 @@
     if(missing.length) throw new Error('Faltan columnas: '+missing.join(', ')+'. Encabezados encontrados: '+headers.filter(Boolean).join(' | '));
     const g = (r,k) => map[k]!==undefined ? (r[map[k]]??'').toString().trim() : '';
     return data.map(r => {
-      const rol = g(r,'rol');
+      const rol = g(r,'cargo') || g(r,'rol');
+      const nd = parseInt(g(r,'ndias'),10); const ndias = (nd>=1 && nd<=3) ? nd : null;
       const diaRaw = g(r,'dia') || (DIAS_ALL.find(d=>norm(rol).includes(d)) ? rol : '');
       const dk = diaRaw ? DIAS_ALL.find(d=>norm(diaRaw).includes(d)) || null : null;
-      return { nombre: g(r,'nombre'), apellido: g(r,'apellido'), equipo: g(r,'equipo') || g(r,'equipo2'), rol,
+      return { nombre: g(r,'nombre'), apellido: g(r,'apellido'), equipo: g(r,'equipo') || g(r,'equipo2'), rol, ndias,
         dia: dk, restricciones: g(r,'restricciones'), codigo: g(r,'codigo'), grupo: g(r,'grupo'), estado: g(r,'estado') };
     }).filter(p => (p.nombre || p.apellido) && !/cancel|anul|devuel|rechaz/.test(norm(p.estado)));
   }
@@ -841,7 +845,7 @@
       if(!out[id]) out[id] = {id, equipo:'', transaccion: byTx ? p.grupo : null, dia:null, miembros:[], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
       if(p.equipo && !out[id].equipo) out[id].equipo = p.equipo;
       if(p.dia && !out[id].dia) out[id].dia = p.dia;
-      out[id].miembros.push({nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
+      out[id].miembros.push({nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: p.ndias||null, restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
     });
     Object.values(out).forEach(t => {
       t.miembros.sort((a,b)=> (isDoc(b.rol)-isDoc(a.rol)) || a.apellido.localeCompare(b.apellido));
