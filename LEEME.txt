@@ -1,36 +1,39 @@
-ACREDITACIÓN · Olimpíada de Ceibal — versión con impresión directa
-===================================================================
+ACREDITACIÓN · Olimpíada de Robótica, Programación y Videojuegos (Ceibal)
+=========================================================================
 
-Esta versión corre en Chrome, fuera del visor de Claude, en modo "impresión directa":
-al tocar "Imprimir etiquetas" la etiqueta sale en la impresora predeterminada,
-sin diálogos ni PDF.
+Plataforma: https://acreditacionesceibalolimpiadas.pages.dev
+Se abre en Chrome en cualquier PC. Los datos se comparten entre todas las PCs
+(API en Cloudflare); no hay nada que instalar ni configurar.
 
-CÓMO ABRIRLA
-------------
-Windows:  doble clic en lanzadores/ABRIR-ACREDITACION.bat
-Mac:      doble clic en lanzadores/abrir-acreditacion.command
-          (la primera vez: clic derecho > Abrir. Si pide permiso en Terminal: chmod +x abrir-acreditacion.command)
+EN CADA PC DE LA MESA
+---------------------
+1. Abrir el link en Chrome.
+2. Escribir el nombre del acreditador en el campo 👤 (arriba a la derecha). Queda guardado.
+3. Buscar al docente o alumno → Imprimir etiquetas → en el diálogo de Chrome:
+   Destino: Brother QL-800 · Tamaño de papel: 62 mm (62 x 80 o 62 x 100) ·
+   Márgenes: Ninguno · Más opciones: destildar "Encabezados y pies de página" → Imprimir.
+   Chrome recuerda estos ajustes; las siguientes impresiones son un solo clic.
+4. Acreditar: botón "Acreditar seleccionados" en la tarjeta del grupo. Queda la hora y el acreditador.
 
-Se abre una ventana de Chrome propia (perfil separado, no toca tu Chrome habitual).
-Cerrá y volvé a abrir siempre con el lanzador: si se abre acreditacion.html a mano,
-la impresión vuelve a mostrar el diálogo.
+DRIVER DE LA BROTHER (Windows)
+------------------------------
+Preferencias de impresión: Tamaño de papel 62 mm, Longitud 80 mm, Orientación vertical,
+Cortar cada 1 etiqueta.
 
-IMPRESORA
----------
-- Dejá la Brother QL-800 como impresora predeterminada del sistema.
-- En el driver (Preferencias de impresión): Tamaño de papel 62mm, Longitud 80 mm,
-  Orientación Vertical, Cortar cada 1 etiqueta (como en la captura que tenés).
-- La primera vez, imprimí una etiqueta de prueba. Si Chrome recuerda otro tamaño de
-  papel, abrí acreditacion.html a mano una vez, imprimí con Ctrl+P eligiendo la Brother
-  y tamaño personalizado 62x80, márgenes 0, encabezados desactivados, y a partir de ahí el modo directo usa esa configuración.
+CARGA Y ACTUALIZACIÓN DE DATOS
+------------------------------
+⚙ Datos y etiquetas → subir el Tickets Report de RedTickets (CSV tal cual se descarga)
+o una planilla propia (Nombre, Apellido, Equipo, Rol, Día, Restricciones alimentarias, Código).
+Modo "Agregar / actualizar": agrega grupos nuevos y actualiza los existentes conservando
+todo lo hecho (acreditaciones, impresiones, día). Se puede repetir las veces que haga falta.
+Modo "Reemplazar todo": borra lo que no venga en el archivo (empezar de cero).
 
-DATOS COMPARTIDOS ENTRE PCs
----------------------------
-Ya configurado: la página sincroniza con la API de RedTickets en Cloudflare
-(Worker acreditacion-ceibal + base D1). Todas las PCs que abran el link ven lo mismo.
-Para cambiar la API o la clave: ⚙ Datos y etiquetas > 4. Sincronización.
+PESTAÑAS
+--------
+Buscar · Ya impresos (gafetes preparados de antemano) · Asistieron (una fila por persona
+acreditada o con etiqueta impresa en mesa, con hora y acreditador; botón Descargar Excel).
 
-CARGA DE DATOS
---------------
-Igual que en la versión web: ⚙ > subir el Tickets Report de RedTickets.
-Nombre del acreditador: campo 👤 arriba a la derecha, en cada PC.
+OPCIONAL: IMPRESIÓN SIN DIÁLOGO
+-------------------------------
+Los archivos de la carpeta lanzadores/ abren el mismo link en Chrome con impresión directa
+(sin diálogo). No son necesarios.
