@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-1929">
+<html lang="es" data-ver="20261108-1949">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,8 +7,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
   :root{
     --forest:#032e1f; --forest-2:#0b4a33; --sage:#5f8359; --sage-2:#7fa374; --sage-soft:#e3ebdd;
@@ -283,10 +281,13 @@
     </div>
     <p class="note"><b>En esta versión el tamaño del papel lo decide Chrome</b>, no estos campos: la primera vez imprimí con el diálogo (abrir sin el lanzador), elegí la Brother, tamaño 62 × 80, Márgenes "Ninguno" y destildá "Encabezados y pies de página". Chrome lo recuerda y la etiqueta llena siempre el papel elegido.</p>
 
-    <h3>4. Sincronización entre computadoras (Firebase)</h3>
-    <p>Para que todas las PCs de la mesa vean lo mismo, pegá acá la configuración de tu proyecto Firebase (Firestore). Sin esto, los datos quedan solo en esta computadora.</p>
-    <div class="row"><textarea id="fbCfg" rows="4" style="width:100%;font:12px monospace;border:1px solid var(--line);border-radius:10px;padding:8px" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...","appId":"..."}'></textarea></div>
-    <div class="row"><button class="btn sm" id="btnFb">Guardar y conectar</button><span class="note" id="fbMsg"></span></div>
+    <h3>4. Sincronización entre computadoras</h3>
+    <p id="syncInfo">Los datos se comparten entre todas las PCs a través de la API de RedTickets en Cloudflare.</p>
+    <div class="row">
+      <label class="field"><span>URL de la API (Worker)</span><input class="wide" id="syncUrl" placeholder="https://acreditacion-ceibal.xxxx.workers.dev"></label>
+      <label class="field"><span>Clave (X-Key)</span><input class="wide" id="syncKey" placeholder="clave"></label>
+    </div>
+    <div class="row"><button class="btn sm" id="btnSync">Guardar y conectar</button><span class="note" id="syncMsg"></span></div>
     <h3>5. Zona peligrosa</h3>
     <div class="row">
       <button class="btn danger sm" id="btnWipe">Borrar todos los datos</button>
@@ -367,33 +368,56 @@
     catch(err){ toast('No se pudo guardar: '+err.message, true); if(btn) btn.disabled=false; return false; }
   }
 
-  // ---------- standalone: Firebase o localStorage ----------
-  let fdb = null;
-  function fbConfig(){ try{ return JSON.parse(localStorage.getItem('acred.firebase')||'null'); }catch(e){ return null; } }
+  // ---------- standalone: sincronización por API (Cloudflare Worker + D1) ----------
+  const SYNC_DEFAULT = { url: 'https://acreditacion-ceibal.sansoneravenna.workers.dev', key: 'Ceibal2026-Acred-7Kq9mZ3pX' };
+  function syncCfg(){
+    try{ const o = JSON.parse(localStorage.getItem('acred.sync')||'null'); if(o && o.url) return o; }catch(e){}
+    return SYNC_DEFAULT.url ? SYNC_DEFAULT : null;
+  }
+  let sync = null, since = 0, pollT = null, syncErr = 0;
+  async function api(method, path, body){
+    const r = await fetch(sync.url.replace(/\/$/,'') + path, { method, headers: { 'Content-Type':'application/json', 'X-Key': sync.key }, body: body ? JSON.stringify(body) : undefined });
+    if(!r.ok) throw new Error('API '+r.status+(r.status===401?' (clave incorrecta)':''));
+    return r.json();
+  }
+  async function poll(){
+    try{
+      const res = await api('GET', '/equipos?since='+since);
+      let changed = false;
+      (res.rows||[]).forEach(row => {
+        if(row.deleted){ if(teams[row.id]){ delete teams[row.id]; changed = true; } }
+        else { teams[row.id] = Object.assign({id: row.id}, row.data); changed = true; }
+        if(row.updated > since) since = row.updated;
+      });
+      if(!dbReady){ dbReady = true; changed = true; $('#syncMsg').textContent = 'Conectado ✓'; }
+      if(syncErr){ syncErr = 0; toast('Conexión con la API restablecida'); }
+      if(changed) render();
+    }catch(err){
+      syncErr++;
+      if(syncErr === 3) toast('Sin conexión con la API: '+err.message, true);
+    }
+    pollT = setTimeout(poll, dbReady ? 3000 : 1500);
+  }
   async function initStandalone(){
     downloads = null; canWrite = true;
-    const cfg = fbConfig();
-    if(cfg && window.firebase){
-      try{
-        if(!firebase.apps.length) firebase.initializeApp(cfg);
-        fdb = firebase.firestore();
-        db = { doc: p => ({ set: d => fdb.doc(p).set(d), delete: () => fdb.doc(p).delete() }) };
-        const timer = setTimeout(()=>{ if(!dbReady) toast('Todavía no se pudo conectar con Firebase…', true); }, 10000);
-        fdb.collection('equipos').onSnapshot(snap => {
-          const next = {}; snap.forEach(d => next[d.id] = Object.assign({id:d.id}, d.data()));
-          teams = next; if(!snap.metadata.fromCache){ dbReady = true; clearTimeout(timer); } render();
-        }, err => { clearTimeout(timer); toast('Error de Firebase: '+err.message, true); });
-        $('#who').textContent = 'Sincronizado con Firebase (proyecto '+(cfg.projectId||'')+'): todas las PCs ven los mismos datos.';
-        $('#fbMsg').textContent = 'Conectado ✓';
-      }catch(err){ db=null; fdb=null; toast('No se pudo iniciar Firebase: '+err.message, true); localLoad(); render(); }
-    } else { db=null; localLoad(); render(); $('#who').textContent = 'Sin sincronización: los datos se guardan solo en esta computadora. Configurá Firebase en el punto 4 para compartir entre PCs.'; }
+    sync = syncCfg();
+    if(sync){
+      db = {
+        doc: p => { const id = p.split('/').pop(); return {
+          set: async d => { await api('PUT', '/equipos/'+encodeURIComponent(id), d); teams[id] = Object.assign({id}, d); render(); },
+          delete: async () => { await api('DELETE', '/equipos/'+encodeURIComponent(id)); delete teams[id]; render(); }
+        }; }
+      };
+      $('#who').textContent = 'Sincronizado con la API en Cloudflare: todas las PCs ven los mismos datos.';
+      poll();
+    } else { db = null; localLoad(); render(); $('#who').textContent = 'Sin sincronización: los datos se guardan solo en esta computadora. Configurá la API en el punto 4.'; }
   }
-  $('#fbCfg').value = localStorage.getItem('acred.firebase') || '';
-  $('#btnFb').addEventListener('click', () => {
-    const v = $('#fbCfg').value.trim();
-    if(!v){ localStorage.removeItem('acred.firebase'); $('#fbMsg').textContent='Sincronización desactivada. Recargá la página.'; return; }
-    try{ const o = JSON.parse(v); if(!o.projectId) throw new Error('falta projectId'); localStorage.setItem('acred.firebase', JSON.stringify(o)); $('#fbMsg').textContent='Guardado. Recargando…'; setTimeout(()=>location.reload(), 600); }
-    catch(e){ $('#fbMsg').textContent='La configuración no es un JSON válido: '+e.message; }
+  { const o = syncCfg(); if(o){ $('#syncUrl').value = o.url; $('#syncKey').value = o.key || ''; } }
+  $('#btnSync').addEventListener('click', () => {
+    const url = $('#syncUrl').value.trim(), key = $('#syncKey').value.trim();
+    if(!url){ localStorage.removeItem('acred.sync'); $('#syncMsg').textContent = 'Sincronización desactivada. Recargando…'; setTimeout(()=>location.reload(), 600); return; }
+    if(!/^https:\/\//.test(url)){ $('#syncMsg').textContent = 'La URL tiene que empezar con https://'; return; }
+    localStorage.setItem('acred.sync', JSON.stringify({url, key})); $('#syncMsg').textContent = 'Guardado. Recargando…'; setTimeout(()=>location.reload(), 600);
   });
 
   // ---------- render ----------

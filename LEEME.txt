@@ -24,21 +24,11 @@ IMPRESORA
   papel, abrí acreditacion.html a mano una vez, imprimí con Ctrl+P eligiendo la Brother
   y tamaño personalizado 62x80, márgenes 0, encabezados desactivados, y a partir de ahí el modo directo usa esa configuración.
 
-DATOS COMPARTIDOS ENTRE PCs (Firebase, gratis)
-----------------------------------------------
-Sin configurar nada, los datos quedan solo en la PC donde se cargan (sirve para probar).
-Para que todas las mesas vean lo mismo en tiempo real:
-1. https://console.firebase.google.com > Agregar proyecto (ej. "acreditacion-ceibal").
-2. Menú Compilación > Firestore Database > Crear base de datos > modo de prueba > ubicación southamerica-east1.
-3. Reglas (pestaña Reglas): para el evento podés dejar
-      rules_version = '2';
-      service cloud.firestore { match /databases/{database}/documents {
-        match /equipos/{doc} { allow read, write: if true; } } }
-   (abierto a quien tenga la configuración; borrá el proyecto al terminar el evento).
-4. Configuración del proyecto (engranaje) > Tus apps > icono </> (Web) > registrar app >
-   copiá el objeto firebaseConfig { apiKey, authDomain, projectId, ... }.
-5. En la plataforma: ⚙ Datos y etiquetas > 4. Sincronización > pegá el JSON > Guardar y conectar.
-   Repetí el paso 5 en cada PC (o copiá la carpeta ya configurada... la config se guarda por PC).
+DATOS COMPARTIDOS ENTRE PCs
+---------------------------
+Ya configurado: la página sincroniza con la API de RedTickets en Cloudflare
+(Worker acreditacion-ceibal + base D1). Todas las PCs que abran el link ven lo mismo.
+Para cambiar la API o la clave: ⚙ Datos y etiquetas > 4. Sincronización.
 
 CARGA DE DATOS
 --------------
