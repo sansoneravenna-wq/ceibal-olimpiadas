@@ -166,28 +166,27 @@
 
   /* impresión directa */
   #printArea{display:none}
-  @page{size:62mm 70mm;margin:0}
   @media print{
     html,body{background:#fff !important;margin:0;padding:0}
     body::before,body::after,header,main,.overlay,.toast{display:none !important}
     #printArea{display:block}
     .lbl:not(:last-child){page-break-after:always;break-after:page}
   }
-  .lbl{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:62mm;height:70mm;padding:3mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;background:#fff;position:relative}
+  .lbl{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:var(--lw,62mm);height:var(--lh,80mm);padding:3mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;background:#fff;position:relative}
   .lbl .hd{font-size:6.2pt;font-weight:700;text-align:center;letter-spacing:.2px;border-bottom:.35mm solid #000;padding-bottom:1mm;margin-bottom:2mm}
-  .lbl .nm{font-size:17pt;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden}
-  .lbl .ap{font-size:13pt;font-weight:700;line-height:1.1;text-transform:uppercase;white-space:nowrap;overflow:hidden;margin-top:.8mm}
-  .lbl .eq{font-size:8.5pt;line-height:1.2;margin-top:2mm;max-height:8.5mm;overflow:hidden}
+  .lbl .nm{font-size:18pt;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden}
+  .lbl .ap{font-size:14pt;font-weight:700;line-height:1.1;text-transform:uppercase;white-space:nowrap;overflow:hidden;margin-top:.8mm}
+  .lbl .eq{font-size:9.5pt;line-height:1.2;margin-top:2mm;max-height:8.5mm;overflow:hidden}
   .lbl .rl{display:flex;align-items:center;justify-content:space-between;margin-top:2.5mm}
   .lbl .rl b{font-size:8.5pt;border:.5mm solid #000;border-radius:1.2mm;padding:1mm 3mm;letter-spacing:.3px}
   .lbl .rl b.doc{background:#000;color:#fff}
   .lbl .rl small{font-size:6.5pt;color:#444}
   .lbl .rs{margin-top:2.5mm;border:.6mm solid #000;border-radius:1.2mm;padding:1.2mm 2mm;font-size:8pt;font-weight:700;line-height:1.2}
   .lbl .cm{margin-top:auto;display:flex;justify-content:space-between;text-align:center}
-  .lbl .cm div{flex:1;font-size:6.8pt}
-  .lbl .cm .bx{display:flex;justify-content:center;gap:1.4mm;margin-top:1.2mm}
-  .lbl .cm i{display:block;width:4.6mm;height:4.6mm;border:.4mm solid #000}
-  .lbl .cm em{display:block;font-size:4.8pt;color:#555;font-style:normal;margin-top:.4mm}
+  .lbl .cm div{flex:1;font-size:8.5pt;font-weight:700}
+  .lbl .cm .bx{display:flex;justify-content:center;gap:2.2mm;margin-top:1.6mm}
+  .lbl .cm i{display:block;width:7mm;height:7mm;border:.5mm solid #000;border-radius:.6mm}
+  .lbl .cm em{display:block;font-size:5.5pt;color:#555;font-style:normal;margin-top:.6mm;font-weight:400}
 </style>
 </head>
 <body>
@@ -280,9 +279,9 @@
           <option value="label">Una etiqueta por hoja (impresora de etiquetas)</option>
           <option value="a4">Varias por hoja A4 (etiquetas autoadhesivas)</option>
         </select></label>
-      <label class="field" style="flex-direction:row;align-items:center;gap:8px;margin-top:18px"><input type="checkbox" id="comidas" style="width:17px;height:17px"> Casilleros de comidas (uno por día)</label>
+      <label class="field" style="flex-direction:row;align-items:center;gap:8px;margin-top:18px"><input type="checkbox" id="comidas" style="width:17px;height:17px"> Casilleros de comidas (dos por comida)</label>
     </div>
-    <p class="note">Brother QL-800 con rollo continuo de 62 mm: dejá 62 × 70 mm y "Una etiqueta por hoja"; en el driver, Longitud 70 mm. Estas preferencias se guardan en este navegador.</p>
+    <p class="note">Brother QL-800 con rollo continuo de 62 mm: dejá 62 × 80 mm y "Una etiqueta por hoja"; en el driver, Longitud 80 mm. Estas preferencias se guardan en este navegador.</p>
 
     <h3>4. Sincronización entre computadoras (Firebase)</h3>
     <p>Para que todas las PCs de la mesa vean lo mismo, pegá acá la configuración de tu proyecto Firebase (Firestore). Sin esto, los datos quedan solo en esta computadora.</p>
@@ -326,8 +325,8 @@
   const DIA_LABEL = {lunes:'Lunes',martes:'Martes',miercoles:'Miércoles',jueves:'Jueves',viernes:'Viernes',sabado:'Sábado',domingo:'Domingo'};
 
   function loadSettings(){
-    const d = {lw:62, lh:70, layout:'label', dias:'Martes, Miércoles', comidas:true};
-    try{ const st=JSON.parse(localStorage.getItem('acred.settings')||'{}'); if(st.lw===90 && st.lh===55){ st.lw=62; st.lh=70; localStorage.setItem('acred.settings', JSON.stringify(st)); } }catch(e){}
+    const d = {lw:62, lh:80, layout:'label', dias:'Martes, Miércoles', comidas:true};
+    try{ const st=JSON.parse(localStorage.getItem('acred.settings')||'{}'); if((st.lw===90 && st.lh===55)||(st.lw===62 && st.lh===70)){ st.lw=62; st.lh=80; localStorage.setItem('acred.settings', JSON.stringify(st)); } }catch(e){}
     try{ return Object.assign(d, JSON.parse(localStorage.getItem('acred.settings')||'{}')); }catch(e){ return d; }
   }
   function saveSettings(){ try{ localStorage.setItem('acred.settings', JSON.stringify(settings)); }catch(e){} }
@@ -684,28 +683,28 @@
     doc.text(rol, x+pad+3*u, cy+rh*0.7);
     doc.setTextColor(K);
     if(p.transaccion || p.dia){ doc.setFont('helvetica','normal'); doc.setFontSize(6.5*u); doc.setTextColor(90);
-      doc.text([p.dia?diaLabel(p.dia):'', p.transaccion?'#'+p.transaccion:''].filter(Boolean).join(' · '), right, cy+rh*0.7, {align:'right'}); doc.setTextColor(K); }
+      doc.text(p.dia?diaLabel(p.dia):'', right, cy+rh*0.7, {align:'right'}); doc.setTextColor(K); }
     cy += rh;
 
     // comidas: anclado abajo
     const comidas = settings.comidas !== false;
     const ds = diasCfg();
-    const nDias = Math.min(Math.max(ds.length,1), 3);
+    const nDias = 2;
     let mealsTop = y + h - pad;
     if(comidas){
-      const box = 4.6*u, gap = 1.4*u, colW = iw/3;
+      const box = 7*u, gap = 2.2*u, colW = iw/3;
       const boxesY = y + h - pad - box - 3*u;          // casilleros
       const labelY = boxesY - 1.4*u;                   // texto encima
-      doc.setFont('helvetica','normal'); doc.setFontSize(6.8*u); doc.setLineWidth(0.4*u);
+      doc.setFont('helvetica','bold'); doc.setFontSize(8.5*u); doc.setLineWidth(0.5*u);
       ['Desayuno','Almuerzo','Merienda'].forEach((lab,i)=>{
         const cx0 = x + pad + i*colW;
         const totalW = nDias*box + (nDias-1)*gap;
         const start = cx0 + (colW - totalW)/2;
-        doc.setFontSize(6.8*u); doc.text(lab, cx0 + colW/2, labelY, {align:'center'});
+        doc.setFontSize(8.5*u); doc.text(lab, cx0 + colW/2, labelY, {align:'center'});
         for(let d=0; d<nDias; d++){
           const bx = start + d*(box+gap);
           doc.rect(bx, boxesY, box, box, 'S');
-          if(nDias>1){ doc.setFontSize(4.8*u); doc.setTextColor(110); doc.text((ds[d]||'').slice(0,2), bx+box/2, boxesY+box+2.2*u, {align:'center'}); doc.setTextColor(K); }
+          if(ds[d]){ doc.setFont('helvetica','normal'); doc.setFontSize(5.5*u); doc.setTextColor(110); doc.text(ds[d].slice(0,2), bx+box/2, boxesY+box+2.4*u, {align:'center'}); doc.setTextColor(K); doc.setFont('helvetica','bold'); }
         }
       });
       mealsTop = labelY - 5.5*u;
@@ -727,13 +726,13 @@
   function labelHtml(p){
     const ds = diasCfg(), n = Math.min(Math.max(ds.length,1),3);
     const comidas = settings.comidas !== false;
-    const boxes = Array.from({length:n}, (_,i)=>`<span><i></i>${n>1?`<em>${esc((ds[i]||'').slice(0,2))}</em>`:''}</span>`).join('');
+    const boxes = [0,1].map(i=>`<span><i></i>${ds[i]?`<em>${esc(ds[i].slice(0,2))}</em>`:''}</span>`).join('');
     return `<div class="lbl">
       <div class="hd">OLIMPÍADA DE ROBÓTICA · EDICIÓN 13</div>
       <div class="nm">${esc(cap((p.nombre||'').trim()))}</div>
       <div class="ap">${esc((p.apellido||'').trim())}</div>
       <div class="eq">${esc(p.equipo||'')}</div>
-      <div class="rl"><b class="${isDoc(p.rol)?'doc':''}">${rolLabel(p.rol).toUpperCase()}</b><small>${[p.dia?diaLabel(p.dia):'', p.transaccion?'#'+p.transaccion:''].filter(Boolean).join(' · ')}</small></div>
+      <div class="rl"><b class="${isDoc(p.rol)?'doc':''}">${rolLabel(p.rol).toUpperCase()}</b><small>${p.dia?esc(diaLabel(p.dia)):''}</small></div>
       ${(p.restricciones||'').trim()?`<div class="rs">RESTRICCIÓN: ${esc(p.restricciones)}</div>`:''}
       ${comidas?`<div class="cm">${['Desayuno','Almuerzo','Merienda'].map(l=>`<div>${l}<div class="bx">${boxes}</div></div>`).join('')}</div>`:''}
     </div>`;
@@ -746,6 +745,9 @@
   }
   async function printLabels(people, team){
     const area = $('#printArea');
+    const lw = +settings.lw||62, lh = +settings.lh||80;
+    let st = $('#pageStyle'); if(!st){ st=document.createElement('style'); st.id='pageStyle'; document.head.appendChild(st); }
+    st.textContent = `@page{size:${lw}mm ${lh}mm;margin:0} .lbl{--lw:${lw}mm;--lh:${lh}mm}`;
     area.innerHTML = people.map(labelHtml).join('');
     // medir con el área visible fuera de pantalla
     area.style.cssText = 'display:block;position:absolute;left:-9999px;top:0';
