@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-1917">
+<html lang="es" data-ver="20261108-1920">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -171,7 +171,7 @@
     body::before,body::after,header,main,.overlay,.toast{display:none !important}
     #printArea{display:block}
     .lbl:not(:last-child){page-break-after:always;break-after:page}
-    .lbl{width:100vw !important;height:calc(100vh - 1mm) !important}
+    .lbl{width:100vw !important;height:var(--lh,80mm) !important}
   }
   .lbl{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:var(--lw,62mm);height:var(--lh,80mm);padding:3mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;background:#fff;position:relative}
   .lbl .hd{font-size:6.2pt;font-weight:700;text-align:center;letter-spacing:.2px;border-bottom:.35mm solid #000;padding-bottom:1mm;margin-bottom:2mm}
@@ -742,7 +742,7 @@
   }
   async function printLabels(people, team){
     const area = $('#printArea');
-    const lw = +settings.lw||62, lh = +settings.lh||80;
+    const lw = Math.min(Math.max(+settings.lw||62, 50), 70), lh = Math.min(Math.max(+settings.lh||80, 60), 120);
     let st = $('#pageStyle'); if(!st){ st=document.createElement('style'); st.id='pageStyle'; document.head.appendChild(st); }
     st.textContent = `@page{margin:0} .lbl{--lw:${lw}mm;--lh:${lh}mm}`;
     area.innerHTML = people.map(labelHtml).join('');
