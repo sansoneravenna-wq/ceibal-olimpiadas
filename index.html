@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2005">
+<html lang="es" data-ver="20261108-2014">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -240,7 +240,7 @@
 
     <h3>1. Cargar participantes</h3>
     <p><b>Reporte de RedTickets:</b> subí el "Tickets Report" tal cual se descarga (CSV). Se agrupa por <code># transacción</code>,
-      el rol sale de <code>Tipo de ticket</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Centro Educativo</code>.
+      el rol sale de <code>Tipo de ticket</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Empresa</code> (o <code>Centro Educativo</code> si está vacía).
       Si el tipo de ticket o una columna <code>Día</code> dice "martes"/"miércoles", el día se asigna solo. Los tickets cancelados se omiten.</p>
     <p><b>Planilla propia:</b> una fila por persona con <code>Nombre</code>, <code>Apellido</code>, <code>Equipo</code>, <code>Rol</code>,
       <code>Día</code>, <code>Restricciones alimentarias</code> y opcionalmente <code>Código</code>.</p>
@@ -793,7 +793,8 @@
     apellido: ['apellido','apellidos','last','surname'],
     email: ['email','correo','mail'],
     dia: ['dia','día','jornada','fecha del evento','turno'],
-    equipo: ['equipo','team','nombre del equipo','centro educativo','escuela','institucion','liceo','utu'],
+    equipo: ['equipo','team','nombre del equipo','empresa','institucion'],
+    equipo2: ['centro educativo','escuela','liceo','utu','colegio'],
     rol: ['rol','tipo de ticket','tipo','role','perfil','categoria'],
     restricciones: ['restric','alimentar','dieta','alergia','celiac']
   };
@@ -827,7 +828,7 @@
       const rol = g(r,'rol');
       const diaRaw = g(r,'dia') || (DIAS_ALL.find(d=>norm(rol).includes(d)) ? rol : '');
       const dk = diaRaw ? DIAS_ALL.find(d=>norm(diaRaw).includes(d)) || null : null;
-      return { nombre: g(r,'nombre'), apellido: g(r,'apellido'), equipo: g(r,'equipo'), rol,
+      return { nombre: g(r,'nombre'), apellido: g(r,'apellido'), equipo: g(r,'equipo') || g(r,'equipo2'), rol,
         dia: dk, restricciones: g(r,'restricciones'), codigo: g(r,'codigo'), grupo: g(r,'grupo'), estado: g(r,'estado') };
     }).filter(p => (p.nombre || p.apellido) && !/cancel|anul|devuel|rechaz/.test(norm(p.estado)));
   }
