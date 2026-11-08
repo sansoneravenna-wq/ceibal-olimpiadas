@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2018">
+<html lang="es" data-ver="20261108-2019">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -240,7 +240,7 @@
 
     <h3>1. Cargar participantes</h3>
     <p><b>Reporte de RedTickets:</b> subí el "Tickets Report" tal cual se descarga (CSV). Se agrupa por <code># transacción</code>,
-      el rol sale de <code>Cargo</code> (o <code>Tipo de ticket</code>), los días que asiste de <code>Cant. personas</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Empresa</code> (o <code>Centro Educativo</code> si está vacía).
+      el rol en la etiqueta es el texto de <code>Cargo</code> tal cual (si está vacío, <code>Tipo de ticket</code>), los días que asiste de <code>Cant. personas</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Empresa</code> (o <code>Centro Educativo</code> si está vacía).
       Si el tipo de ticket o una columna <code>Día</code> dice "martes"/"miércoles", el día se asigna solo. Los tickets cancelados se omiten.</p>
     <p><b>Planilla propia:</b> una fila por persona con <code>Nombre</code>, <code>Apellido</code>, <code>Equipo</code>, <code>Rol</code>,
       <code>Día</code>, <code>Restricciones alimentarias</code> y opcionalmente <code>Código</code>.</p>
@@ -346,7 +346,7 @@
   const esc = s => (s??'').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const isDoc = r => /doc|prof|maestr|teacher|refer|adult|tutor|acompan|responsable|coordinad|educador|director|instructor|mentor|encargad/.test(norm(r));
   const isStaff = r => /staff|organiz|produc|prensa|invitad|operacion|voluntari|jurado|ceibal/.test(norm(r));
-  const rolLabel = r => isDoc(r) ? 'Docente' : isStaff(r) ? 'Staff' : 'Estudiante';
+  const rolLabel = r => { const t=(r||'').toString().trim(); if(t) return t.charAt(0).toUpperCase()+t.slice(1); return 'Estudiante'; };
   const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
   const hora = iso => iso ? new Date(iso).toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
   let toastT;
