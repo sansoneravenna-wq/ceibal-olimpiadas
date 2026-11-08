@@ -22,7 +22,7 @@ IMPRESORA
   Orientación Vertical, Cortar cada 1 etiqueta (como en la captura que tenés).
 - La primera vez, imprimí una etiqueta de prueba. Si Chrome recuerda otro tamaño de
   papel, abrí acreditacion.html a mano una vez, imprimí con Ctrl+P eligiendo la Brother
-  y tamaño 62x80 (o 62mm), y a partir de ahí el modo directo usa esa configuración.
+  y tamaño personalizado 62x80, márgenes 0, encabezados desactivados, y a partir de ahí el modo directo usa esa configuración.
 
 DATOS COMPARTIDOS ENTRE PCs (Firebase, gratis)
 ----------------------------------------------
