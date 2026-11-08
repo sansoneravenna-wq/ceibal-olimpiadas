@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2017">
+<html lang="es" data-ver="20261108-2018">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -344,8 +344,8 @@
   const norm = s => (s??'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
   const slug = s => norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80) || 'equipo';
   const esc = s => (s??'').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const isDoc = r => /doc|prof|maestr|teacher|refer|adult|tutor/.test(norm(r));
-  const isStaff = r => /staff|organiz|produc|prensa|invitad/.test(norm(r));
+  const isDoc = r => /doc|prof|maestr|teacher|refer|adult|tutor|acompan|responsable|coordinad|educador|director|instructor|mentor|encargad/.test(norm(r));
+  const isStaff = r => /staff|organiz|produc|prensa|invitad|operacion|voluntari|jurado|ceibal/.test(norm(r));
   const rolLabel = r => isDoc(r) ? 'Docente' : isStaff(r) ? 'Staff' : 'Estudiante';
   const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
   const hora = iso => iso ? new Date(iso).toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
