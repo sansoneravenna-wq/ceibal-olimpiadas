@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2020">
+<html lang="es" data-ver="20261108-2023">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -344,8 +344,8 @@
   const norm = s => (s??'').toString().normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim();
   const slug = s => norm(s).replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,80) || 'equipo';
   const esc = s => (s??'').toString().replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const isDoc = r => /doc|prof|maestr|teacher|refer|adult|tutor|acompan|responsable|coordinad|educador|director|instructor|mentor|encargad/.test(norm(r));
-  const isStaff = r => /staff|organiz|produc|prensa|invitad|operacion|voluntari|jurado|ceibal/.test(norm(r));
+  const isDoc = r => /docente|profesor|profe\b|maestr|teacher/.test(norm(r));
+  const isStaff = r => /staff|organiz|produc|prensa|invitad|operacion|voluntari|jurado|referee|juez|ceibal/.test(norm(r));
   const rolLabel = r => { const t=(r||'').toString().trim(); if(t) return t.charAt(0).toUpperCase()+t.slice(1); return 'Estudiante'; };
   const cap = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
   const hora = iso => iso ? new Date(iso).toLocaleTimeString('es-UY',{hour:'2-digit',minute:'2-digit',hour12:false}) : '';
@@ -477,8 +477,9 @@
   }
   function card(t, m, q, i){
     const docs = (t.miembros||[]).filter(x=>isDoc(x.rol));
-    const alumnos = (t.miembros||[]).filter(x=>!isDoc(x.rol) && !isStaff(x.rol));
-    const title = docs.length ? docs.map(d=>`${d.nombre} ${d.apellido}`).join(', ') : t.equipo;
+    const n = (t.miembros||[]).length;
+    const title = t.equipo;
+    const docsTxt = docs.length && docs.length <= 3 ? 'Docente' + (docs.length>1?'s':'') + ': ' + docs.map(d=>`${d.nombre} ${d.apellido}`).join(', ') : '';
     const rows = (t.miembros||[]).map((p,j)=>`
       <tr>
         <td class="chk"><input type="checkbox" data-i="${j}" checked></td>
@@ -494,8 +495,8 @@
     return `<div class="card ${t.impreso?'printed':''}" data-team="${esc(t.id)}" style="animation-delay:${Math.min(i,12)*35}ms">
       <div class="card-h">
         <div>
-          <div class="t">${esc(title)} <small>(${alumnos.length} alumno${alumnos.length===1?'':'s'})</small></div>
-          <div class="sub">Equipo: <b>${m.teamHit?hl(t.equipo,q):esc(t.equipo)}</b>${t.transaccion?` · Transacción ${m.teamHit?hl(String(t.transaccion),q):esc(t.transaccion)}`:''}</div>
+          <div class="t">${m.teamHit?hl(title,q):esc(title)} <small>(${n} integrante${n===1?'':'s'})</small></div>
+          <div class="sub">${docsTxt?esc(docsTxt)+' · ':''}${t.transaccion?`Transacción ${m.teamHit?hl(String(t.transaccion),q):esc(t.transaccion)}`:''}</div>
         </div>
         <div class="badges">
           ${t.dia?`<span class="pill dia">📅 ${esc(diaLabel(t.dia))}</span>`:''}
