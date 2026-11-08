@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-1920">
+<html lang="es" data-ver="20261108-1922">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -171,14 +171,14 @@
     body::before,body::after,header,main,.overlay,.toast{display:none !important}
     #printArea{display:block}
     .lbl:not(:last-child){page-break-after:always;break-after:page}
-    .lbl{width:100vw !important;height:var(--lh,80mm) !important}
+    .lbl{width:100vw !important;height:var(--lh,70mm) !important}
   }
-  .lbl{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:var(--lw,62mm);height:var(--lh,80mm);padding:3mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;background:#fff;position:relative}
+  .lbl{-webkit-print-color-adjust:exact;print-color-adjust:exact;width:var(--lw,62mm);height:var(--lh,70mm);padding:3mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;background:#fff;position:relative}
   .lbl .hd{font-size:6.2pt;font-weight:700;text-align:center;letter-spacing:.2px;border-bottom:.35mm solid #000;padding-bottom:1mm;margin-bottom:2mm}
   .lbl .nm{font-size:18pt;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden;margin-top:2mm}
   .lbl .ap{font-size:14pt;font-weight:700;line-height:1.1;text-transform:uppercase;white-space:nowrap;overflow:hidden;margin-top:.8mm}
-  .lbl .eq{font-size:9.5pt;line-height:1.2;margin-top:6mm;max-height:8.5mm;overflow:hidden}
-  .lbl .rl{display:flex;align-items:center;justify-content:space-between;margin-top:6mm}
+  .lbl .eq{font-size:9.5pt;line-height:1.2;margin-top:4.5mm;max-height:8.5mm;overflow:hidden}
+  .lbl .rl{display:flex;align-items:center;justify-content:space-between;margin-top:4.5mm}
   .lbl .rl b{font-size:8.5pt;border:.5mm solid #000;border-radius:1.2mm;padding:1mm 3mm;letter-spacing:.3px}
   .lbl .rl b.doc{background:#000;color:#fff}
   .lbl .rl small{font-size:6.5pt;color:#444}
@@ -281,7 +281,7 @@
           <option value="a4">Varias por hoja A4 (etiquetas autoadhesivas)</option>
         </select></label>
     </div>
-    <p class="note"><b>En esta versión el tamaño del papel lo decide Chrome</b>, no estos campos: la primera vez imprimí con el diálogo (abrir sin el lanzador), elegí la Brother, tamaño 62 × 80 (o 62 × 100), Márgenes "Ninguno" y destildá "Encabezados y pies de página". Chrome lo recuerda y la etiqueta llena siempre el papel elegido.</p>
+    <p class="note">Brother QL-800 con rollo continuo de 62 mm: dejá 62 × 70 mm y "Una etiqueta por hoja"; en el driver, Longitud 70 mm. Estas preferencias se guardan en este navegador.</p>
 
     <h3>4. Sincronización entre computadoras (Firebase)</h3>
     <p>Para que todas las PCs de la mesa vean lo mismo, pegá acá la configuración de tu proyecto Firebase (Firestore). Sin esto, los datos quedan solo en esta computadora.</p>
@@ -325,8 +325,8 @@
   const DIA_LABEL = {lunes:'Lunes',martes:'Martes',miercoles:'Miércoles',jueves:'Jueves',viernes:'Viernes',sabado:'Sábado',domingo:'Domingo'};
 
   function loadSettings(){
-    const d = {lw:62, lh:80, layout:'label', dias:'Martes, Miércoles', comidas:true};
-    try{ const st=JSON.parse(localStorage.getItem('acred.settings')||'{}'); if((st.lw===90 && st.lh===55)||(st.lw===62 && st.lh===70)){ st.lw=62; st.lh=80; localStorage.setItem('acred.settings', JSON.stringify(st)); } }catch(e){}
+    const d = {lw:62, lh:70, layout:'label', dias:'Martes, Miércoles'};
+    try{ const st=JSON.parse(localStorage.getItem('acred.settings')||'{}'); if((st.lw===90 && st.lh===55)||(st.lw===62 && st.lh===80)){ st.lw=62; st.lh=70; localStorage.setItem('acred.settings', JSON.stringify(st)); } }catch(e){}
     try{ return Object.assign(d, JSON.parse(localStorage.getItem('acred.settings')||'{}')); }catch(e){ return d; }
   }
   function saveSettings(){ try{ localStorage.setItem('acred.settings', JSON.stringify(settings)); }catch(e){} }
@@ -742,7 +742,7 @@
   }
   async function printLabels(people, team){
     const area = $('#printArea');
-    const lw = Math.min(Math.max(+settings.lw||62, 50), 70), lh = Math.min(Math.max(+settings.lh||80, 60), 120);
+    const lw = Math.min(Math.max(+settings.lw||62, 50), 70), lh = Math.min(Math.max(+settings.lh||70, 60), 120);
     let st = $('#pageStyle'); if(!st){ st=document.createElement('style'); st.id='pageStyle'; document.head.appendChild(st); }
     st.textContent = `@page{margin:0} .lbl{--lw:${lw}mm;--lh:${lh}mm}`;
     area.innerHTML = people.map(labelHtml).join('');
