@@ -1,6 +1,6 @@
 @echo off
 title Acreditacion - Olimpiada de Ceibal
-set URL=https://sansoneravenna-wq.github.io/ceibal-olimpiadas/
+set URL=https://acreditacionesceibalolimpiadas.pages.dev/
 set PROFILE=%LOCALAPPDATA%\AcreditacionChrome
 set CHROME=
 if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" set CHROME=%ProgramFiles%\Google\Chrome\Application\chrome.exe
