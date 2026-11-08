@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-ver="20261108-1912">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -194,7 +194,7 @@
   <div class="hwrap">
     <div class="brand">
       <div class="logo">E13</div>
-      <h1>Acreditación<small>Olimpíada de Robótica, Programación y Videojuegos</small></h1>
+      <h1>Acreditación<small>Olimpíada de Robótica, Programación y Videojuegos · <span id="ver"></span></small></h1>
     </div>
     <div class="chips" id="chips"></div>
     <div class="row" style="margin:0;gap:8px">
@@ -906,6 +906,7 @@
     saveSettings(); render();
   }));
 
+  $('#ver').textContent = 'v' + document.documentElement.dataset.ver;
   // ---------- arranque ----------
   initStandalone();
 })();
