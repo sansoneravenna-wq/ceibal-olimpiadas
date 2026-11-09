@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261109-1843">
+<html lang="es" data-ver="20261109-1845">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1041,8 +1041,13 @@
       ids.forEach(id => { const o=teams[id]; if(o){
         ['acreditado','acreditadoEn','impreso','impresoEn'].forEach(k=>g[id][k]=o[k]??g[id][k]); if(o.dia && !g[id].dia) g[id].dia=o.dia;
         // conservar registros por persona (hora/acreditador) al reimportar
-        g[id].miembros.forEach(m => { const prev = (o.miembros||[]).find(x => (m.codigo && x.codigo===m.codigo) || (norm(x.nombre)===norm(m.nombre) && norm(x.apellido)===norm(m.apellido)));
+        const match = (x, m) => (m.codigo && x.codigo===m.codigo) || (!m.codigo && norm(x.nombre)===norm(m.nombre) && norm(x.apellido)===norm(m.apellido));
+        g[id].miembros.forEach(m => { const prev = (o.miembros||[]).find(x => match(x, m));
           if(prev) ['impresoEn','impresoPorId','impresoPor','acreditadoEn','acreditadoPorId','acreditadoPor','sinComida'].forEach(k => { if(prev[k]) m[k]=prev[k]; }); });
+        // en modo "agregar / actualizar" NUNCA se quita gente: los que ya estaban y no vienen en el archivo se conservan
+        if(mode !== 'replace'){
+          (o.miembros||[]).forEach(x => { if(!g[id].miembros.some(m => match(x, m))) g[id].miembros.push(Object.assign({}, x, {ord: g[id].miembros.length})); });
+        }
       } });
       for(const id of ids){ await saveTeam(g[id]); done++; bar.style.width=Math.round(done/ids.length*100)+'%'; $('#importMsg').textContent=`${done}/${ids.length} grupos…`; }
       $('#importMsg').textContent = `Listo: ${ids.length} grupos, ${pending.length} personas (${importDiff.nuevas} nuevas, ${importDiff.cambiadas} actualizadas, ${importDiff.iguales} sin cambios).`;
