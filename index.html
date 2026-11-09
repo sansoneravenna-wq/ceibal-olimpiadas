@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261109-1836">
+<html lang="es" data-ver="20261109-1843">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -351,7 +351,8 @@
       <label class="field"><span>Apellido</span><input id="pApellido" required></label>
       <label class="field"><span>Cargo / rol (va en la etiqueta)</span><input id="pRol" list="rolList" placeholder="Estudiante, Docente, Jurados…"><datalist id="rolList"></datalist></label>
       <label class="field"><span>Días que asiste</span><select id="pDias"><option value="2">2 días</option><option value="1">1 día</option></select></label>
-      <label class="field full"><span>Equipo / empresa (existente o nuevo)</span><input id="pEquipo" list="equipoList" placeholder="Escribí para buscar o crear"><datalist id="equipoList"></datalist></label>
+      <label class="field"><span>Equipo / empresa (existente o nuevo)</span><input id="pEquipo" list="equipoList" placeholder="Escribí para buscar o crear"><datalist id="equipoList"></datalist></label>
+      <label class="field"><span>Día (del equipo)</span><select id="pDia"></select></label>
       <label class="field full"><span>Restricciones alimentarias (opcional)</span><input id="pRest" placeholder="Celíaco, vegano…"></label>
       <label class="field full" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="pSinComida" style="width:17px;height:17px"> Sin comida (la etiqueta sale sin casilleros de Desayuno / Almuerzo / Merienda)</label>
       <div class="err full" id="pErr"></div>
@@ -1093,6 +1094,11 @@
     $('#pNombre').value = m ? m.nombre : ''; $('#pApellido').value = m ? m.apellido : '';
     $('#pRol').value = m ? m.rol : ''; $('#pDias').value = m && m.ndias ? String(m.ndias) : '2'; $('#pSinComida').checked = !!(m && m.sinComida);
     $('#pEquipo').value = t ? t.equipo : ''; $('#pRest').value = m ? (m.restricciones||'') : '';
+    const syncDia = () => { const eq = $('#pEquipo').value.trim(); const tt = teams[slug(eq)]; const cur = tt ? (tt.dia||'') : (t ? (t.dia||'') : ($('#pDia').value||''));
+      $('#pDia').innerHTML = '<option value="">Sin día</option>' + diasCfg().map(d=>`<option value="${esc(diaKey(d))}">${esc(d)}</option>`).join('');
+      if(cur && !diasCfg().some(d=>diaKey(d)===cur)) $('#pDia').insertAdjacentHTML('beforeend', `<option value="${esc(cur)}">${esc(diaLabel(cur))}</option>`);
+      $('#pDia').value = cur; };
+    syncDia(); $('#pEquipo').onchange = syncDia;
     $('#pErr').textContent = '';
     $('#pGo').textContent = m ? 'Guardar e imprimir' : 'Guardar, acreditar e imprimir';
     $('#equipoList').innerHTML = Object.values(teams).map(x=>`<option value="${esc(x.equipo)}">`).join('');
@@ -1110,7 +1116,7 @@
     const nombre = $('#pNombre').value.trim(), apellido = $('#pApellido').value.trim();
     if(!nombre || !apellido){ $('#pErr').textContent = 'Nombre y apellido son obligatorios.'; return; }
     const equipo = $('#pEquipo').value.trim() || 'Sin equipo', tid = slug(equipo);
-    const rol = $('#pRol').value.trim() || 'Estudiante', ndias = +$('#pDias').value || 2, sinComida = $('#pSinComida').checked, restricciones = $('#pRest').value.trim();
+    const rol = $('#pRol').value.trim() || 'Estudiante', ndias = +$('#pDias').value || 2, sinComida = $('#pSinComida').checked, dia = $('#pDia').value || null, restricciones = $('#pRest').value.trim();
     const btns = $('#personForm').querySelectorAll('button'); btns.forEach(b=>b.disabled=true);
     try{
       let member;
@@ -1127,6 +1133,7 @@
       Object.assign(member, {nombre, apellido, rol: rolLabel(rol), ndias, restricciones, sinComida});
       const base = teams[tid];
       const t = base ? Object.assign({}, base, {miembros: base.miembros.slice()}) : {id: tid, equipo, transaccion: null, dia: null, miembros: [], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
+      t.dia = dia;
       let idx;
       if(ctx && ctx.index!==undefined && ctx.teamId===tid){ idx = ctx.index; t.miembros[idx] = member; }
       else { member.ord = t.miembros.length; t.miembros.push(member); idx = t.miembros.length-1; }
