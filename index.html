@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261109-1845">
+<html lang="es" data-ver="20261109-1900">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -269,7 +269,7 @@
 
     <h3>1. Cargar participantes</h3>
     <p><b>Reporte de RedTickets:</b> subí el "Tickets Report" tal cual se descarga (CSV). Se agrupa por <code>Empresa</code> (nombre del equipo; si falta, por <code># transacción</code>),
-      el rol en la etiqueta es el texto de <code>Cargo</code> tal cual (si está vacío, <code>Tipo de ticket</code>), los días que asiste de <code>Cant. personas</code>, el ID del QR de <code># ticket</code> y el equipo de <code>Empresa</code> (o <code>Centro Educativo</code> si está vacía).
+      el rol en la etiqueta es el texto de <code>Cargo</code> tal cual (si está vacío, <code>Tipo de ticket</code>), los días que asiste de <code>Cant. personas</code> (0 = sin comida), el ID del QR de <code># ticket</code> y el equipo de <code>Empresa</code> (o <code>Centro Educativo</code> si está vacía).
       Si el tipo de ticket o una columna <code>Día</code> dice "martes"/"miércoles", el día se asigna solo. Los tickets cancelados se omiten.</p>
     <p><b>Planilla propia:</b> una fila por persona con <code>Nombre</code>, <code>Apellido</code>, <code>Equipo</code>, <code>Rol</code>,
       <code>Día</code>, <code>Restricciones alimentarias</code> y opcionalmente <code>Código</code>.</p>
@@ -950,11 +950,11 @@
     const g = (r,k) => map[k]!==undefined ? (r[map[k]]??'').toString().trim() : '';
     return data.map(r => {
       const rol = g(r,'cargo') || g(r,'rol');
-      const nd = parseInt(g(r,'ndias'),10); const ndias = (nd>=1 && nd<=3) ? nd : null;
+      const nd = parseInt(g(r,'ndias'),10); const ndias = (nd>=1 && nd<=3) ? nd : null; const sinComida = nd === 0;
       const diaRaw = g(r,'dia') || (DIAS_ALL.find(d=>norm(rol).includes(d)) ? rol : '');
       const dk = diaRaw ? DIAS_ALL.find(d=>norm(diaRaw).includes(d)) || null : null;
       return { nombre: g(r,'nombre'), apellido: g(r,'apellido'), equipo: g(r,'equipo') || g(r,'equipo2'), rol, ndias,
-        dia: dk, restricciones: g(r,'restricciones'), codigo: g(r,'codigo'), grupo: g(r,'grupo'), estado: g(r,'estado') };
+        dia: dk, sinComida, restricciones: g(r,'restricciones'), codigo: g(r,'codigo'), grupo: g(r,'grupo'), estado: g(r,'estado') };
     }).filter(p => (p.nombre || p.apellido) && !/cancel|anul|devuel|rechaz/.test(norm(p.estado)));
   }
   function groupRows(rows){
@@ -966,7 +966,7 @@
       if(!out[id]) out[id] = {id, equipo: p.equipo || '', transaccion: p.grupo || null, dia:null, miembros:[], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
       if(p.grupo && out[id].transaccion && out[id].transaccion !== p.grupo && !String(out[id].transaccion).includes(p.grupo)) out[id].transaccion = out[id].transaccion + ', ' + p.grupo;
       if(p.dia && !out[id].dia) out[id].dia = p.dia;
-      out[id].miembros.push({ord: out[id].miembros.length, nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: (p.ndias ?? null), restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
+      out[id].miembros.push({ord: out[id].miembros.length, nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: (p.ndias ?? null), sinComida: !!p.sinComida, restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
     });
     Object.values(out).forEach(t => {
       t.miembros.sort((a,b)=> (isDoc(b.rol)-isDoc(a.rol)) || a.apellido.localeCompare(b.apellido));
@@ -982,7 +982,7 @@
     Object.values(g).forEach(t => t.miembros.forEach(m => {
       const e = existing[m.codigo ? 'c:'+m.codigo : 'n:'+norm(m.nombre+' '+m.apellido)];
       if(!e){ nuevas++; return; }
-      const same = norm(e.m.nombre)===norm(m.nombre) && norm(e.m.apellido)===norm(m.apellido) && (e.m.rol||'')===(m.rol||'') && (e.m.ndias||null)===(m.ndias||null) && (e.m.restricciones||'')===(m.restricciones||'') && e.t.id===t.id;
+      const same = norm(e.m.nombre)===norm(m.nombre) && norm(e.m.apellido)===norm(m.apellido) && (e.m.rol||'')===(m.rol||'') && (e.m.ndias||null)===(m.ndias||null) && (e.m.restricciones||'')===(m.restricciones||'') && !!e.m.sinComida===!!m.sinComida && e.t.id===t.id;
       if(same) iguales++; else cambiadas++;
     }));
     const equiposNuevos = Object.keys(g).filter(id => !teams[id]).length;
@@ -991,9 +991,9 @@
   function showPreview(rows){
     const d = diffImport(rows), g = d.g;
     const noRol = rows.filter(r=>!r.rol).length, noEq = rows.filter(r=>!r.equipo).length, noDia = Object.values(g).filter(t=>!t.dia).length;
-    $('#preview').innerHTML = `<table><thead><tr><th>Nombre</th><th>Apellido</th><th>Equipo</th><th>Rol</th><th>Día</th><th>Restricciones</th></tr></thead><tbody>` +
-      rows.slice(0,8).map(r=>`<tr><td>${esc(r.nombre)}</td><td>${esc(r.apellido)}</td><td>${esc(r.equipo)}</td><td>${esc(rolLabel(r.rol))}</td><td>${esc(diaLabel(r.dia)||'—')}</td><td>${esc(r.restricciones)}</td></tr>`).join('') +
-      (rows.length>8?`<tr><td colspan="6" class="note">… y ${rows.length-8} más</td></tr>`:'') + `</tbody></table>`;
+    $('#preview').innerHTML = `<table><thead><tr><th>Nombre</th><th>Apellido</th><th>Equipo</th><th>Rol</th><th>Días</th><th>Comidas</th><th>Restricciones</th></tr></thead><tbody>` +
+      rows.slice(0,8).map(r=>`<tr><td>${esc(r.nombre)}</td><td>${esc(r.apellido)}</td><td>${esc(r.equipo)}</td><td>${esc(rolLabel(r.rol))}</td><td>${r.ndias||'—'}</td><td>${r.sinComida?'Sin comida':'Sí'}</td><td>${esc(r.restricciones)}</td></tr>`).join('') +
+      (rows.length>8?`<tr><td colspan="7" class="note">… y ${rows.length-8} más</td></tr>`:'') + `</tbody></table>`;
     const byTx = rows.some(r=>r.grupo);
     const hay = Object.keys(teams).length > 0;
     let warn = `<div class="note" style="margin-top:8px">${rows.length} personas en ${Object.keys(g).length} equipos${byTx?' (agrupados por Empresa; por transacción si falta)':''}.</div>`;
@@ -1043,7 +1043,7 @@
         // conservar registros por persona (hora/acreditador) al reimportar
         const match = (x, m) => (m.codigo && x.codigo===m.codigo) || (!m.codigo && norm(x.nombre)===norm(m.nombre) && norm(x.apellido)===norm(m.apellido));
         g[id].miembros.forEach(m => { const prev = (o.miembros||[]).find(x => match(x, m));
-          if(prev) ['impresoEn','impresoPorId','impresoPor','acreditadoEn','acreditadoPorId','acreditadoPor','sinComida'].forEach(k => { if(prev[k]) m[k]=prev[k]; }); });
+          if(prev) ['impresoEn','impresoPorId','impresoPor','acreditadoEn','acreditadoPorId','acreditadoPor'].forEach(k => { if(prev[k]) m[k]=prev[k]; }); });
         // en modo "agregar / actualizar" NUNCA se quita gente: los que ya estaban y no vienen en el archivo se conservan
         if(mode !== 'replace'){
           (o.miembros||[]).forEach(x => { if(!g[id].miembros.some(m => match(x, m))) g[id].miembros.push(Object.assign({}, x, {ord: g[id].miembros.length})); });
