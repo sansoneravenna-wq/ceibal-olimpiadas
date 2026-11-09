@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2247">
+<html lang="es" data-ver="20261109-1544">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -419,6 +419,7 @@
     return SYNC_DEFAULT.url ? SYNC_DEFAULT : null;
   }
   let sync = null, since = 0, pollT = null, syncErr = 0;
+  function syncState(){ if(!sync) return 'ok'; if(syncErr >= 2) return 'error'; return dbReady ? 'ok' : 'connecting'; }
   const store = { t: {}, m: {} };          // filas crudas: t~<equipo> y m~<equipo>~<persona>
   const META = ['equipo','transaccion','dia','acreditado','acreditadoEn','impreso','impresoEn'];
   const metaOf = t => { const o={}; META.forEach(k=>o[k]=t[k]===undefined?null:t[k]); return o; };
@@ -458,12 +459,14 @@
       let changed = false;
       (res.rows||[]).forEach(row => { applyRow(row); changed = true; if(row.updated > since) since = row.updated; });
       if(!dbReady){ dbReady = true; changed = true; $('#syncMsg').textContent = 'Conectado ✓'; }
-      if(syncErr){ syncErr = 0; toast('Conexión con la API restablecida'); }
+      if(syncErr){ syncErr = 0; changed = true; toast('Conexión con la base de datos restablecida'); }
       if(changed){ rebuild(); render(); }
     }catch(err){
       syncErr++;
-      if(syncErr === 3) toast('Sin conexión con la API: '+err.message, true);
+      if(syncErr === 3) toast('Sin conexión con la base de datos: '+err.message, true);
+      if(syncErr === 2) render();
     }
+    $('#btnWipe').disabled = !canWrite || syncState() !== 'ok';
     pollT = setTimeout(poll, dbReady ? 3000 : 1500);
   }
   async function syncSave(t){
@@ -621,6 +624,12 @@
     document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on', b.dataset.view===view));
     if(!c.grupos){
       $('#listTitle').textContent=''; $('#listCount').textContent='';
+      if(typeof syncState === 'function' && syncState() !== 'ok'){
+        box.innerHTML = syncState() === 'error'
+          ? `<div class="empty"><div class="big">📡</div><b>Sin conexión con la base de datos.</b><br>Los datos no se perdieron: la página reintenta cada pocos segundos y aparecen solos cuando vuelva la conexión.<br><span class="note">Revisá el wifi o probá con datos del celular.</span></div>`
+          : `<div class="empty"><div class="big">⏳</div>Conectando con la base de datos…</div>`;
+        return;
+      }
       box.innerHTML = `<div class="empty"><div class="big">📂</div><b>No hay participantes cargados.</b><br>Abrí <b>⚙ Datos y etiquetas</b> y subí el reporte de RedTickets o tu planilla.</div>`;
       return;
     }
