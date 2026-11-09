@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261109-1617">
+<html lang="es" data-ver="20261109-1638">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -350,7 +350,7 @@
       <label class="field"><span>Nombre</span><input id="pNombre" required></label>
       <label class="field"><span>Apellido</span><input id="pApellido" required></label>
       <label class="field"><span>Cargo / rol (va en la etiqueta)</span><input id="pRol" list="rolList" placeholder="Estudiante, Docente, Jurados…"><datalist id="rolList"></datalist></label>
-      <label class="field"><span>Días que asiste</span><select id="pDias"><option value="2">2 días</option><option value="1">1 día</option></select></label>
+      <label class="field"><span>Días que asiste</span><select id="pDias"><option value="2">2 días</option><option value="1">1 día</option><option value="0">0 días (sin casilleros de comidas)</option></select></label>
       <label class="field full"><span>Equipo / empresa (existente o nuevo)</span><input id="pEquipo" list="equipoList" placeholder="Escribí para buscar o crear"><datalist id="equipoList"></datalist></label>
       <label class="field full"><span>Restricciones alimentarias (opcional)</span><input id="pRest" placeholder="Celíaco, vegano…"></label>
       <div class="err full" id="pErr"></div>
@@ -591,7 +591,7 @@
         <td class="chk"><input type="checkbox" data-i="${j}" checked></td>
         <td>${m.hits[j]?hl(p.nombre,q):esc(p.nombre)}</td>
         <td>${m.hits[j]?hl(p.apellido,q):esc(p.apellido)}</td>
-        <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span>${p.ndias?` <span class="note">${p.ndias} día${p.ndias>1?'s':''}</span>`:''}</td>
+        <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span>${p.ndias!=null?` <span class="note">${p.ndias} día${p.ndias===1?'':'s'}</span>`:''}</td>
         <td class="${p.restricciones?'rest':'rest none'}">${p.restricciones?esc(p.restricciones):'—'}</td>
         <td class="who">${p.acreditadoEn?`<b>✓ ${hora(p.acreditadoEn)}</b> · ${esc(porNombre(p.acreditadoPorId,p.acreditadoPor))}`:(p.impresoEn?`🖨 ${hora(p.impresoEn)} · ${esc(porNombre(p.impresoPorId,p.impresoPor))}`:'<span style="color:#a4ab9f">—</span>')}</td>
         <td class="chk">${canWrite?`<button class="editbtn" data-act="editp" data-i="${j}" title="Editar datos">✎</button>`:''}</td>
@@ -711,7 +711,7 @@
   async function exportXlsx(rows){
     const data = rows.map(({t,m}) => ({
       'Nombre': m.nombre, 'Apellido': m.apellido, 'Rol': rolLabel(m.rol), 'Equipo': t.equipo, 'Transacción': t.transaccion||'', 'Día': diaLabel(t.dia)||'',
-      'Días que asiste': m.ndias||'', 'Restricciones alimentarias': m.restricciones||'', 'Código ticket': m.codigo||'',
+      'Días que asiste': (m.ndias ?? ''), 'Restricciones alimentarias': m.restricciones||'', 'Código ticket': m.codigo||'',
       'Hora impresión': m.impresoEn ? fecha(m.impresoEn) : '', 'Impreso por': porNombre(m.impresoPorId,m.impresoPor),
       'Hora acreditación': m.acreditadoEn ? fecha(m.acreditadoEn) : '', 'Acreditado por': porNombre(m.acreditadoPorId,m.acreditadoPor)
     }));
@@ -832,9 +832,9 @@
     cy += rh;
 
     // comidas: anclado abajo
-    const comidas = true;
+    const comidas = p.ndias !== 0;
     const ds = diasCfg();
-    const nDias = Math.min(Math.max(p.ndias||2,1),3);
+    const nDias = Math.min(Math.max(p.ndias ?? 2,1),3);
     let mealsTop = y + h - pad;
     if(comidas){
       const box = 6*u, gap = 1.2*u, colW = iw/3;
@@ -870,8 +870,8 @@
   }
   function labelHtml(p){
     const ds = diasCfg(), n = Math.min(Math.max(ds.length,1),3);
-    const comidas = true;
-    const nd = Math.min(Math.max(p.ndias||2,1),3);
+    const comidas = p.ndias !== 0;
+    const nd = Math.min(Math.max(p.ndias ?? 2,1),3);
     const boxes = Array.from({length:nd},(_,i)=>`<span><i></i>${ds[i] && nd>1?`<em>${esc(ds[i].slice(0,2))}</em>`:''}</span>`).join('');
     return `<div class="lbl">
       <div class="nm">${esc(capWords((p.nombre||'').trim()))}</div>
@@ -947,7 +947,7 @@
     const g = (r,k) => map[k]!==undefined ? (r[map[k]]??'').toString().trim() : '';
     return data.map(r => {
       const rol = g(r,'cargo') || g(r,'rol');
-      const nd = parseInt(g(r,'ndias'),10); const ndias = (nd>=1 && nd<=3) ? nd : null;
+      const nd = parseInt(g(r,'ndias'),10); const ndias = (nd>=0 && nd<=3) ? nd : null;
       const diaRaw = g(r,'dia') || (DIAS_ALL.find(d=>norm(rol).includes(d)) ? rol : '');
       const dk = diaRaw ? DIAS_ALL.find(d=>norm(diaRaw).includes(d)) || null : null;
       return { nombre: g(r,'nombre'), apellido: g(r,'apellido'), equipo: g(r,'equipo') || g(r,'equipo2'), rol, ndias,
@@ -963,7 +963,7 @@
       if(!out[id]) out[id] = {id, equipo: p.equipo || '', transaccion: p.grupo || null, dia:null, miembros:[], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
       if(p.grupo && out[id].transaccion && out[id].transaccion !== p.grupo && !String(out[id].transaccion).includes(p.grupo)) out[id].transaccion = out[id].transaccion + ', ' + p.grupo;
       if(p.dia && !out[id].dia) out[id].dia = p.dia;
-      out[id].miembros.push({ord: out[id].miembros.length, nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: p.ndias||null, restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
+      out[id].miembros.push({ord: out[id].miembros.length, nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: (p.ndias ?? null), restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
     });
     Object.values(out).forEach(t => {
       t.miembros.sort((a,b)=> (isDoc(b.rol)-isDoc(a.rol)) || a.apellido.localeCompare(b.apellido));
@@ -979,7 +979,7 @@
     Object.values(g).forEach(t => t.miembros.forEach(m => {
       const e = existing[m.codigo ? 'c:'+m.codigo : 'n:'+norm(m.nombre+' '+m.apellido)];
       if(!e){ nuevas++; return; }
-      const same = norm(e.m.nombre)===norm(m.nombre) && norm(e.m.apellido)===norm(m.apellido) && (e.m.rol||'')===(m.rol||'') && (e.m.ndias||null)===(m.ndias||null) && (e.m.restricciones||'')===(m.restricciones||'') && e.t.id===t.id;
+      const same = norm(e.m.nombre)===norm(m.nombre) && norm(e.m.apellido)===norm(m.apellido) && (e.m.rol||'')===(m.rol||'') && (e.m.ndias ?? null)===(m.ndias ?? null) && (e.m.restricciones||'')===(m.restricciones||'') && e.t.id===t.id;
       if(same) iguales++; else cambiadas++;
     }));
     const equiposNuevos = Object.keys(g).filter(id => !teams[id]).length;
@@ -1089,7 +1089,7 @@
     $('#personTitle').textContent = m ? 'Editar persona' : (t ? 'Agregar persona a '+t.equipo : 'Acreditación rápida');
     $('#personSub').textContent = m ? 'Los cambios se guardan en la base compartida y se ven en todas las PCs.' : 'Para personas que no figuran en la lista. Se guarda en la base compartida.';
     $('#pNombre').value = m ? m.nombre : ''; $('#pApellido').value = m ? m.apellido : '';
-    $('#pRol').value = m ? m.rol : ''; $('#pDias').value = m && m.ndias ? String(m.ndias) : '2';
+    $('#pRol').value = m ? m.rol : ''; $('#pDias').value = m && m.ndias != null ? String(m.ndias) : '2';
     $('#pEquipo').value = t ? t.equipo : ''; $('#pRest').value = m ? (m.restricciones||'') : '';
     $('#pErr').textContent = '';
     $('#pGo').textContent = m ? 'Guardar e imprimir' : 'Guardar, acreditar e imprimir';
@@ -1108,7 +1108,7 @@
     const nombre = $('#pNombre').value.trim(), apellido = $('#pApellido').value.trim();
     if(!nombre || !apellido){ $('#pErr').textContent = 'Nombre y apellido son obligatorios.'; return; }
     const equipo = $('#pEquipo').value.trim() || 'Sin equipo', tid = slug(equipo);
-    const rol = $('#pRol').value.trim() || 'Estudiante', ndias = +$('#pDias').value || 2, restricciones = $('#pRest').value.trim();
+    const rol = $('#pRol').value.trim() || 'Estudiante', ndias = ($('#pDias').value==='' ? 2 : +$('#pDias').value), restricciones = $('#pRest').value.trim();
     const btns = $('#personForm').querySelectorAll('button'); btns.forEach(b=>b.disabled=true);
     try{
       let member;
