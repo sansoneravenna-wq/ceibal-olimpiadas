@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261109-1544">
+<html lang="es" data-ver="20261109-1548">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -957,14 +957,30 @@
     });
     return out;
   }
-  function showPreview(rows){
+  function diffImport(rows){
     const g = groupRows(rows);
+    const existing = {};   // codigo o nombre+apellido -> {t, m}
+    Object.values(teams).forEach(t => (t.miembros||[]).forEach(m => { existing[m.codigo ? 'c:'+m.codigo : 'n:'+norm(m.nombre+' '+m.apellido)] = {t, m}; }));
+    let nuevas = 0, iguales = 0, cambiadas = 0;
+    Object.values(g).forEach(t => t.miembros.forEach(m => {
+      const e = existing[m.codigo ? 'c:'+m.codigo : 'n:'+norm(m.nombre+' '+m.apellido)];
+      if(!e){ nuevas++; return; }
+      const same = norm(e.m.nombre)===norm(m.nombre) && norm(e.m.apellido)===norm(m.apellido) && (e.m.rol||'')===(m.rol||'') && (e.m.ndias||null)===(m.ndias||null) && (e.m.restricciones||'')===(m.restricciones||'') && e.t.id===t.id;
+      if(same) iguales++; else cambiadas++;
+    }));
+    const equiposNuevos = Object.keys(g).filter(id => !teams[id]).length;
+    return {g, nuevas, iguales, cambiadas, equiposNuevos};
+  }
+  function showPreview(rows){
+    const d = diffImport(rows), g = d.g;
     const noRol = rows.filter(r=>!r.rol).length, noEq = rows.filter(r=>!r.equipo).length, noDia = Object.values(g).filter(t=>!t.dia).length;
     $('#preview').innerHTML = `<table><thead><tr><th>Nombre</th><th>Apellido</th><th>Equipo</th><th>Rol</th><th>Día</th><th>Restricciones</th></tr></thead><tbody>` +
       rows.slice(0,8).map(r=>`<tr><td>${esc(r.nombre)}</td><td>${esc(r.apellido)}</td><td>${esc(r.equipo)}</td><td>${esc(rolLabel(r.rol))}</td><td>${esc(diaLabel(r.dia)||'—')}</td><td>${esc(r.restricciones)}</td></tr>`).join('') +
       (rows.length>8?`<tr><td colspan="6" class="note">… y ${rows.length-8} más</td></tr>`:'') + `</tbody></table>`;
     const byTx = rows.some(r=>r.grupo);
+    const hay = Object.keys(teams).length > 0;
     let warn = `<div class="note" style="margin-top:8px">${rows.length} personas en ${Object.keys(g).length} equipos${byTx?' (agrupados por Empresa; por transacción si falta)':''}.</div>`;
+    if(hay) warn += `<div class="warnbox" style="background:var(--sage-soft);border-color:#cfdcc8;color:var(--forest)"><b>Comparado con lo ya cargado:</b> ${d.nuevas} persona(s) nueva(s)${d.equiposNuevos?` en ${d.equiposNuevos} equipo(s) nuevo(s)`:''} · ${d.cambiadas} con datos modificados · ${d.iguales} ya estaban igual (no se tocan; conservan acreditaciones e impresiones).${d.nuevas+d.cambiadas===0?' <b>No hay nada nuevo para importar.</b>':''}</div>`;
     if(noRol) warn += `<div class="warnbox">${noRol} fila(s) sin rol: se cargan como Estudiante.</div>`;
     if(noEq && !byTx) warn += `<div class="warnbox">${noEq} fila(s) sin equipo: se agrupan como "Sin equipo".</div>`;
     if(noEq && byTx) warn += `<div class="warnbox">${noEq} fila(s) sin "Centro Educativo"/equipo: el grupo toma el nombre del docente.</div>`;
@@ -997,7 +1013,8 @@
 
   $('#btnImport').addEventListener('click', async () => {
     if(!pending.length) return;
-    const g = groupRows(pending), mode = $('#mode').value;
+    const importDiff = diffImport(pending);
+    const g = importDiff.g, mode = $('#mode').value;
     const btn = $('#btnImport'); btn.disabled=true;
     const prog = $('#prog'), bar = prog.querySelector('i'); prog.style.display='block';
     const ids = Object.keys(g); let done=0;
@@ -1011,7 +1028,7 @@
           if(prev) ['impresoEn','impresoPorId','impresoPor','acreditadoEn','acreditadoPorId','acreditadoPor'].forEach(k => { if(prev[k]) m[k]=prev[k]; }); });
       } });
       for(const id of ids){ await saveTeam(g[id]); done++; bar.style.width=Math.round(done/ids.length*100)+'%'; $('#importMsg').textContent=`${done}/${ids.length} grupos…`; }
-      $('#importMsg').textContent = `Listo: ${ids.length} grupos, ${pending.length} personas.`;
+      $('#importMsg').textContent = `Listo: ${ids.length} grupos, ${pending.length} personas (${importDiff.nuevas} nuevas, ${importDiff.cambiadas} actualizadas, ${importDiff.iguales} sin cambios).`;
       toast('Importación completa'); pending=[]; $('#file').value='';
     }catch(err){ $('#importMsg').textContent='Error: '+err.message; toast('Error al importar: '+err.message, true); }
     btn.disabled=false; setTimeout(()=>{ prog.style.display='none'; bar.style.width='0'; }, 1500);
