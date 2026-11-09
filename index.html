@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261109-1639">
+<html lang="es" data-ver="20261109-1836">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -483,7 +483,7 @@
       if(syncErr === 2) render();
     }
     $('#btnWipe').disabled = !canWrite || syncState() !== 'ok';
-    pollT = setTimeout(poll, dbReady ? 3000 : 1500);
+    pollT = setTimeout(poll, !dbReady ? 1500 : (document.hidden ? 20000 : (syncErr ? Math.min(30000, 5000*syncErr) : 5000)));
   }
   async function syncSave(t){
     const id = t.id, prev = teams[id];
@@ -514,6 +514,7 @@
     if(sync) await syncDelete(id);
     else { delete teams[id]; localSave(); render(); }
   }
+  document.addEventListener('visibilitychange', () => { if(!document.hidden && sync && pollT){ clearTimeout(pollT); poll(); } });
   async function initStandalone(){
     downloads = null; canWrite = true; db = null;
     sync = syncCfg();
