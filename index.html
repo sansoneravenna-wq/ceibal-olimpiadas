@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261108-2037">
+<html lang="es" data-ver="20261108-2247">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -45,6 +45,18 @@
   .acred input{border:none;background:transparent;font:inherit;font-weight:700;color:var(--forest);width:150px;outline:none}
   .acred input::placeholder{color:#a4ab9f;font-weight:500}
   .acred:focus-within{border-color:var(--sage)}
+  .okbtn{font:inherit;font-size:12px;font-weight:800;border:none;border-radius:999px;padding:5px 10px;background:var(--sage-soft);color:var(--forest);cursor:pointer}
+  .okbtn.done{background:var(--ok-bg);color:var(--ok)}
+  .hbtn.alt{background:var(--orange);border-color:var(--orange)}
+  .hbtn.alt:hover{background:var(--orange-2)}
+  .editbtn{border:none;background:transparent;cursor:pointer;font-size:15px;color:var(--muted);padding:4px 6px;border-radius:8px}
+  .editbtn:hover{background:var(--cream-2);color:var(--forest)}
+  .form{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .form .field input,.form .field select{width:100%}
+  .form .full{grid-column:1/-1}
+  .pw{display:flex;gap:8px;align-items:center;margin-top:12px}
+  .pw input{font:inherit;font-size:16px;padding:10px 12px;border:1px solid var(--line);border-radius:12px;flex:1}
+  .err{color:var(--warn);font-size:13px;font-weight:600;min-height:18px;margin-top:6px}
   .who{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
   .who b{color:var(--ok)}
   .asis{background:var(--card);border:1px solid var(--line);border-radius:var(--r);overflow:hidden;box-shadow:var(--shadow);animation:rise .3s ease both}
@@ -201,7 +213,8 @@
     </div>
     <div class="chips" id="chips"></div>
     <div class="row" style="margin:0;gap:8px">
-      <label class="acred" title="Quién está acreditando en esta computadora">👤 <input id="meName" placeholder="Tu nombre (acreditador)" maxlength="40"></label>
+      <label class="acred" title="Quién está acreditando en esta computadora">👤 <input id="meName" placeholder="Tu nombre (acreditador)" maxlength="40"><button id="meOk" class="okbtn" type="button">OK</button></label>
+      <button class="hbtn alt" id="btnQuick">➕ Acreditación rápida</button>
       <button class="hbtn" id="btnAdmin">⚙ Datos y etiquetas</button>
     </div>
   </div>
@@ -301,6 +314,37 @@
     </div>
 
     <div class="topbtns"><button class="btn" id="btnClose">Cerrar</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="pwOverlay">
+  <div class="modal" style="max-width:420px">
+    <h2>Datos y etiquetas</h2>
+    <p>Ingresá la contraseña para entrar a la configuración.</p>
+    <form id="pwForm" class="pw"><input type="password" id="pwInput" placeholder="Contraseña" autocomplete="off"><button class="btn primary" type="submit">Entrar</button></form>
+    <div class="err" id="pwErr"></div>
+    <div class="topbtns"><button class="btn" type="button" id="pwCancel">Cancelar</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="personOverlay">
+  <div class="modal" style="max-width:560px">
+    <h2 id="personTitle">Acreditación rápida</h2>
+    <p class="note" id="personSub">Para personas que no figuran en la lista. Se guarda en la base compartida.</p>
+    <form id="personForm" class="form" autocomplete="off" style="margin-top:14px">
+      <label class="field"><span>Nombre</span><input id="pNombre" required></label>
+      <label class="field"><span>Apellido</span><input id="pApellido" required></label>
+      <label class="field"><span>Cargo / rol (va en la etiqueta)</span><input id="pRol" list="rolList" placeholder="Estudiante, Docente, Jurados…"><datalist id="rolList"></datalist></label>
+      <label class="field"><span>Días que asiste</span><select id="pDias"><option value="2">2 días</option><option value="1">1 día</option></select></label>
+      <label class="field full"><span>Equipo / empresa (existente o nuevo)</span><input id="pEquipo" list="equipoList" placeholder="Escribí para buscar o crear"><datalist id="equipoList"></datalist></label>
+      <label class="field full"><span>Restricciones alimentarias (opcional)</span><input id="pRest" placeholder="Celíaco, vegano…"></label>
+      <div class="err full" id="pErr"></div>
+      <div class="topbtns full" style="margin-top:4px">
+        <button class="btn" type="button" id="pCancel">Cancelar</button>
+        <button class="btn" type="submit" data-mode="save">Guardar</button>
+        <button class="btn primary" type="submit" data-mode="go" id="pGo">Guardar, acreditar e imprimir</button>
+      </div>
+    </form>
   </div>
 </div>
 
@@ -532,7 +576,8 @@
         <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span>${p.ndias?` <span class="note">${p.ndias} día${p.ndias>1?'s':''}</span>`:''}</td>
         <td class="${p.restricciones?'rest':'rest none'}">${p.restricciones?esc(p.restricciones):'—'}</td>
         <td class="who">${p.acreditadoEn?`<b>✓ ${hora(p.acreditadoEn)}</b> · ${esc(porNombre(p.acreditadoPorId,p.acreditadoPor))}`:(p.impresoEn?`🖨 ${hora(p.impresoEn)} · ${esc(porNombre(p.impresoPorId,p.impresoPor))}`:'<span style="color:#a4ab9f">—</span>')}</td>
-      </tr>`).join('') + (onlyHits ? `<tr><td colspan="6" style="text-align:center;padding:10px"><button class="lnk" data-act="expand">Mostrar los ${n0} integrantes del equipo</button></td></tr>` : '');
+        <td class="chk">${canWrite?`<button class="editbtn" data-act="editp" data-i="${j}" title="Editar datos">✎</button>`:''}</td>
+      </tr>`).join('') + (onlyHits ? `<tr><td colspan="7" style="text-align:center;padding:10px"><button class="lnk" data-act="expand">Mostrar los ${n0} integrantes del equipo</button></td></tr>` : '');
     const nAcr = (t.miembros||[]).filter(p=>p.acreditadoEn).length;
     const shown = onlyHits ? m.hits.filter(Boolean).length : n0;
     const dayOpts = ['<option value="">Sin día</option>'].concat(diasCfg().map(d=>`<option value="${esc(diaKey(d))}" ${t.dia===diaKey(d)?'selected':''}>${esc(d)}</option>`));
@@ -550,7 +595,7 @@
         </div>
       </div>
       <table>
-        <thead><tr><th class="chk"><input type="checkbox" class="all" checked title="Seleccionar todos"></th><th>Nombre</th><th>Apellido</th><th>Rol</th><th>Restricciones alimentarias</th><th>Asistencia</th></tr></thead>
+        <thead><tr><th class="chk"><input type="checkbox" class="all" checked title="Seleccionar todos"></th><th>Nombre</th><th>Apellido</th><th>Rol</th><th>Restricciones alimentarias</th><th>Asistencia</th><th class="chk"></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
       <div class="card-f">
@@ -559,6 +604,7 @@
           <span><span class="cnt">${shown}</span> seleccionado(s)</span>
         </div>
         <div class="row" style="margin:0">
+          ${canWrite?`<button class="btn sm" data-act="addp">➕ Agregar persona</button>`:''}
           ${canWrite?`<button class="btn sm ${t.impreso?'':'amber'}" data-act="impreso">${t.impreso?'Quitar "impreso"':'🏷️ Marcar impreso'}</button>`:''}
           ${canWrite?`<button class="btn sm ${t.acreditado?'':'green'}" data-act="acred">${t.acreditado?'Quitar acreditación':'✓ Acreditar seleccionados'}</button>`:''}
           <button class="btn primary" data-act="print">🖨 Imprimir etiquetas</button>
@@ -677,6 +723,8 @@
     const b = e.target.closest('button[data-act]'); if(!b) return;
     const cardEl = b.closest('.card'), id = cardEl.dataset.team, t = teams[id]; if(!t) return;
     if(b.dataset.act==='expand'){ expanded.add(id); render(); return; }
+    if(b.dataset.act==='addp'){ openPerson({teamId:id}); return; }
+    if(b.dataset.act==='editp'){ openPerson({teamId:id, index:+b.dataset.i}); return; }
     if(b.dataset.act==='acred'){
       const miembros = (t.miembros||[]).map(m=>Object.assign({},m));
       if(t.acreditado){
@@ -778,7 +826,7 @@
         for(let d=0; d<nDias; d++){
           const bx = start + d*(box+gap);
           doc.rect(bx, boxesY, box, box, 'S');
-          if(ds[d]){ doc.setFont('helvetica','normal'); doc.setFontSize(5.5*u); doc.setTextColor(110); doc.text(ds[d].slice(0,2), bx+box/2, boxesY+box+2.4*u, {align:'center'}); doc.setTextColor(K); doc.setFont('helvetica','bold'); }
+          if(ds[d] && nDias>1){ doc.setFont('helvetica','normal'); doc.setFontSize(5.5*u); doc.setTextColor(110); doc.text(ds[d].slice(0,2), bx+box/2, boxesY+box+2.4*u, {align:'center'}); doc.setTextColor(K); doc.setFont('helvetica','bold'); }
         }
       });
       mealsTop = labelY - 5.5*u;
@@ -801,7 +849,7 @@
     const ds = diasCfg(), n = Math.min(Math.max(ds.length,1),3);
     const comidas = true;
     const nd = Math.min(Math.max(p.ndias||2,1),3);
-    const boxes = Array.from({length:nd},(_,i)=>`<span><i></i>${ds[i]?`<em>${esc(ds[i].slice(0,2))}</em>`:''}</span>`).join('');
+    const boxes = Array.from({length:nd},(_,i)=>`<span><i></i>${ds[i] && nd>1?`<em>${esc(ds[i].slice(0,2))}</em>`:''}</span>`).join('');
     return `<div class="lbl">
       <div class="nm">${esc(capWords((p.nombre||'').trim()))}</div>
       <div class="ap">${esc(capWords((p.apellido||'').trim()))}</div>
@@ -976,7 +1024,83 @@
   });
 
   // ---------- modal y ajustes ----------
-  $('#btnAdmin').addEventListener('click', () => $('#adminOverlay').classList.add('open'));
+  const ADMIN_PW = '12345ceibal';
+  $('#btnAdmin').addEventListener('click', () => { $('#pwInput').value=''; $('#pwErr').textContent=''; $('#pwOverlay').classList.add('open'); setTimeout(()=>$('#pwInput').focus(), 50); });
+  $('#pwCancel').addEventListener('click', () => $('#pwOverlay').classList.remove('open'));
+  $('#pwForm').addEventListener('submit', e => {
+    e.preventDefault();
+    if($('#pwInput').value === ADMIN_PW){ $('#pwOverlay').classList.remove('open'); $('#adminOverlay').classList.add('open'); }
+    else { $('#pwErr').textContent = 'Contraseña incorrecta.'; $('#pwInput').select(); }
+  });
+  function confirmMe(){
+    const v = $('#meName').value.trim();
+    try{ localStorage.setItem('acred.me', v); }catch(e){}
+    const b = $('#meOk'); b.textContent = '✓'; b.classList.add('done'); setTimeout(()=>{ b.textContent='OK'; b.classList.remove('done'); }, 1800);
+    toast(v ? `Acreditador: ${v} ✓` : 'Nombre de acreditador vacío', !v); $('#meName').blur();
+  }
+  $('#meOk').addEventListener('click', confirmMe);
+  $('#meName').addEventListener('keydown', e => { if(e.key==='Enter'){ e.preventDefault(); confirmMe(); } });
+
+  // ---------- acreditación rápida / edición de persona ----------
+  let personCtx = null;
+  function openPerson(ctx){
+    personCtx = ctx || null;
+    const t = ctx && teams[ctx.teamId], m = t && ctx.index!==undefined ? t.miembros[ctx.index] : null;
+    $('#personTitle').textContent = m ? 'Editar persona' : (t ? 'Agregar persona a '+t.equipo : 'Acreditación rápida');
+    $('#personSub').textContent = m ? 'Los cambios se guardan en la base compartida y se ven en todas las PCs.' : 'Para personas que no figuran en la lista. Se guarda en la base compartida.';
+    $('#pNombre').value = m ? m.nombre : ''; $('#pApellido').value = m ? m.apellido : '';
+    $('#pRol').value = m ? m.rol : ''; $('#pDias').value = m && m.ndias ? String(m.ndias) : '2';
+    $('#pEquipo').value = t ? t.equipo : ''; $('#pRest').value = m ? (m.restricciones||'') : '';
+    $('#pErr').textContent = '';
+    $('#pGo').textContent = m ? 'Guardar e imprimir' : 'Guardar, acreditar e imprimir';
+    $('#equipoList').innerHTML = Object.values(teams).map(x=>`<option value="${esc(x.equipo)}">`).join('');
+    const roles = [...new Set(Object.values(teams).flatMap(x=>x.miembros.map(mm=>mm.rol)).filter(Boolean))].sort();
+    $('#rolList').innerHTML = roles.map(r=>`<option value="${esc(r)}">`).join('');
+    $('#personOverlay').classList.add('open'); setTimeout(()=>$(m||t?'#pNombre':'#pNombre').focus(), 50);
+  }
+  $('#btnQuick').addEventListener('click', () => openPerson(null));
+  $('#pCancel').addEventListener('click', () => $('#personOverlay').classList.remove('open'));
+  $('#personOverlay').addEventListener('click', e => { if(e.target.id==='personOverlay') $('#personOverlay').classList.remove('open'); });
+  let submitMode = 'save';
+  $('#personForm').querySelectorAll('button[type=submit]').forEach(b => b.addEventListener('click', () => submitMode = b.dataset.mode));
+  $('#personForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nombre = $('#pNombre').value.trim(), apellido = $('#pApellido').value.trim();
+    if(!nombre || !apellido){ $('#pErr').textContent = 'Nombre y apellido son obligatorios.'; return; }
+    const equipo = $('#pEquipo').value.trim() || 'Sin equipo', tid = slug(equipo);
+    const rol = $('#pRol').value.trim() || 'Estudiante', ndias = +$('#pDias').value || 2, restricciones = $('#pRest').value.trim();
+    const btns = $('#personForm').querySelectorAll('button'); btns.forEach(b=>b.disabled=true);
+    try{
+      let member;
+      const ctx = personCtx;
+      if(ctx && ctx.index!==undefined){
+        member = Object.assign({}, teams[ctx.teamId].miembros[ctx.index]);
+        if(ctx.teamId !== tid){ // mover de equipo
+          const old = Object.assign({}, teams[ctx.teamId], {miembros: teams[ctx.teamId].miembros.filter((_,i)=>i!==ctx.index)});
+          if(old.miembros.length) await saveTeam(old); else await deleteTeam(old.id);
+        }
+      } else {
+        member = {codigo: 'manual-'+Date.now().toString(36), estado: 'Manual'};
+      }
+      Object.assign(member, {nombre, apellido, rol: rolLabel(rol), ndias, restricciones});
+      const base = teams[tid];
+      const t = base ? Object.assign({}, base, {miembros: base.miembros.slice()}) : {id: tid, equipo, transaccion: null, dia: null, miembros: [], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
+      let idx;
+      if(ctx && ctx.index!==undefined && ctx.teamId===tid){ idx = ctx.index; t.miembros[idx] = member; }
+      else { member.ord = t.miembros.length; t.miembros.push(member); idx = t.miembros.length-1; }
+      const go = submitMode === 'go';
+      if(go && !member.acreditadoEn){ const st = stamp(); member.acreditadoEn = st.en; member.acreditadoPorId = st.porId; member.acreditadoPor = st.por; }
+      if(go){ const st = stamp(); member.impresoEn = st.en; member.impresoPorId = st.porId; member.impresoPor = st.por; }
+      t.acreditado = t.miembros.every(mm=>mm.acreditadoEn);
+      await saveTeam(t);
+      $('#personOverlay').classList.remove('open');
+      toast(go ? `${nombre} ${apellido}: guardado y acreditado ✓` : `${nombre} ${apellido}: guardado ✓`);
+      $('#q').value = apellido; expanded.clear(); render();
+      if(go){ try{ await printLabels([Object.assign({equipo: t.equipo, dia: t.dia, transaccion: t.transaccion}, member)], t); }catch(err){ if(!(err && err.code==='declined')) toast('No se pudo imprimir: '+(err.message||err), true); } }
+    }catch(err){ $('#pErr').textContent = 'No se pudo guardar: '+(err.message||err); }
+    btns.forEach(b=>b.disabled=false);
+  });
+
   $('#btnClose').addEventListener('click', () => { $('#adminOverlay').classList.remove('open'); $('#q').focus(); render(); });
   $('#adminOverlay').addEventListener('click', e => { if(e.target.id==='adminOverlay') $('#btnClose').click(); });
   $('#lw').value=settings.lw; $('#lh').value=settings.lh; $('#layout').value=settings.layout; $('#diasCfg').value=settings.dias;
