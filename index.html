@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261110-1248">
+<html lang="es" data-ver="20261110-1338">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -303,6 +303,12 @@
       </div>
       <div class="prog" id="prog"><i></i></div>
     </div>
+
+    <h3>1b. Marcar "sin permiso de imagen" desde un listado</h3>
+    <p>Pegá los nombres (uno por línea, "Nombre Apellido" o "Apellido Nombre"). Se buscan en toda la base y se marcan como <b>sin permiso de imagen</b>; el resto de sus datos no cambia.</p>
+    <div class="row"><textarea id="imgList" rows="5" style="width:100%;font:14px/1.4 inherit;border:1px solid var(--line);border-radius:10px;padding:8px" placeholder="Rocío Castro&#10;Lorenzo Sansone&#10;…"></textarea></div>
+    <div class="row"><button class="btn sm" id="btnImgPrev">Buscar en la base</button><button class="btn primary sm" id="btnImgApply" disabled>Marcar sin permiso de imagen</button><span class="note" id="imgMsg"></span></div>
+    <div id="imgPrev"></div>
 
     <h3>2. Días del evento</h3>
     <div class="row">
@@ -1081,6 +1087,47 @@
     try{ for(const id of Object.keys(teams)) await deleteTeam(id); $('#wipeMsg').textContent='Datos borrados.'; toast('Todos los datos fueron borrados'); }
     catch(err){ toast('Error: '+err.message, true); }
     $('#btnWipe').disabled=!canWrite;
+  });
+
+  // ---------- marcar sin permiso de imagen desde listado ----------
+  let imgMatches = null;
+  function findPeople(lines){
+    const idx = []; Object.values(teams).forEach(t => (t.miembros||[]).forEach((m,i) => idx.push({t, m, i, a: norm(m.nombre+' '+m.apellido), b: norm(m.apellido+' '+m.nombre)})));
+    return lines.map(line => {
+      const q = norm(line.replace(/[,;]/g,' ')).replace(/\s+/g,' ');
+      if(!q) return null;
+      let hits = idx.filter(x => x.a===q || x.b===q);
+      if(!hits.length){ const toks = q.split(' '); hits = idx.filter(x => toks.every(k => x.a.includes(k))); }
+      return {line: line.trim(), hits};
+    }).filter(Boolean);
+  }
+  $('#btnImgPrev').addEventListener('click', () => {
+    const lines = $('#imgList').value.split(/\n/).map(l=>l.trim()).filter(Boolean);
+    if(!lines.length){ $('#imgMsg').textContent = 'Pegá al menos un nombre.'; return; }
+    imgMatches = findPeople(lines);
+    const ok = imgMatches.filter(r=>r.hits.length===1), multi = imgMatches.filter(r=>r.hits.length>1), none = imgMatches.filter(r=>!r.hits.length);
+    $('#imgPrev').innerHTML = `<div class="preview"><table><thead><tr><th>Listado</th><th>Encontrado</th><th>Equipo</th><th>Estado</th></tr></thead><tbody>` +
+      imgMatches.map(r => r.hits.length===1 ? `<tr><td>${esc(r.line)}</td><td>${esc(r.hits[0].m.nombre+' '+r.hits[0].m.apellido)}</td><td>${esc(r.hits[0].t.equipo)}</td><td>${r.hits[0].m.imagen===false?'ya estaba sin imagen':'✓ se marcará'}</td></tr>`
+        : r.hits.length>1 ? `<tr><td>${esc(r.line)}</td><td colspan="2">${r.hits.map(h=>esc(h.m.nombre+' '+h.m.apellido+' ('+h.t.equipo+')')).join(' · ')}</td><td class="rest">ambiguo: afiná el nombre</td></tr>`
+        : `<tr><td>${esc(r.line)}</td><td colspan="2">—</td><td class="rest">no encontrado</td></tr>`).join('') + `</tbody></table></div>`;
+    $('#imgMsg').textContent = `${ok.length} para marcar · ${multi.length} ambiguos · ${none.length} no encontrados`;
+    $('#btnImgApply').disabled = !ok.length || !canWrite;
+  });
+  $('#btnImgApply').addEventListener('click', async () => {
+    if(!imgMatches) return;
+    const ok = imgMatches.filter(r=>r.hits.length===1 && r.hits[0].m.imagen!==false);
+    $('#btnImgApply').disabled = true; let n=0;
+    try{
+      const byTeam = {};
+      ok.forEach(r => { const h=r.hits[0]; (byTeam[h.t.id] = byTeam[h.t.id] || []).push(h.i); });
+      for(const [tid, idxs] of Object.entries(byTeam)){
+        const t = teams[tid]; if(!t) continue;
+        const nt = Object.assign({}, t, {miembros: t.miembros.map((m,i) => idxs.includes(i) ? Object.assign({}, m, {imagen:false}) : m)});
+        await saveTeam(nt); n += idxs.length; $('#imgMsg').textContent = `Marcando… ${n}/${ok.length}`;
+      }
+      $('#imgMsg').textContent = `Listo: ${n} persona(s) marcadas sin permiso de imagen.`; toast(`${n} persona(s) marcadas sin permiso de imagen`);
+      imgMatches = null; $('#imgPrev').innerHTML=''; $('#imgList').value='';
+    }catch(err){ $('#imgMsg').textContent = 'Error: '+err.message; toast('Error: '+err.message, true); $('#btnImgApply').disabled=false; }
   });
 
   // ---------- modal y ajustes ----------
