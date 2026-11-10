@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-ver="20261109-1900">
+<html lang="es" data-ver="20261110-1248">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -193,6 +193,8 @@
   .lbl .rl{display:flex;align-items:center;justify-content:space-between;margin-top:4mm}
   .lbl .rl b{font-size:8.5pt;border:.5mm solid #000;border-radius:1.2mm;padding:1mm 3mm;letter-spacing:.3px;background:#fff;color:#000}
   .lbl .rl small{font-size:6.5pt;color:#444}
+  .lbl .rs.ni{text-align:center;letter-spacing:.3px}
+  .lbl .rs + .rs{margin-top:1.5mm}
   .lbl .rs{margin-top:2.5mm;border:.6mm solid #000;border-radius:1.2mm;padding:1.2mm 2mm;font-size:8pt;font-weight:700;line-height:1.2}
   .lbl .rs + .cm{margin-top:6mm}
   .lbl .cm{margin-top:12mm;display:flex;justify-content:space-between;text-align:center}
@@ -209,6 +211,12 @@
     .lbl .rl{margin-top:5.5vw}
     .lbl .rl b{font-size:4.8vw;border-width:.8vw;border-radius:1.9vw;padding:1.6vw 4.8vw}
     .lbl .rl small{font-size:3.7vw}
+    .lbl .rs + .rs{margin-top:2vw}
+    .lbl .rs + .rs + .cm{margin-top:2vw}
+    .lbl:has(.rs + .rs) .eq{margin-top:3.5vw}
+    .lbl:has(.rs + .rs) .rl{margin-top:3.5vw}
+    .lbl:has(.rs + .rs) .rs{margin-top:2.5vw;font-size:4.2vw}
+    .lbl .rs{padding:1.4vw 3.2vw}
     .lbl .rs{margin-top:4vw;border-width:1vw;border-radius:1.9vw;padding:1.9vw 3.2vw;font-size:4.5vw}
     .lbl .rs + .cm{margin-top:9vw}
     .lbl .cm{margin-top:16vw}
@@ -353,6 +361,7 @@
       <label class="field"><span>Días que asiste</span><select id="pDias"><option value="2">2 días</option><option value="1">1 día</option></select></label>
       <label class="field"><span>Equipo / empresa (existente o nuevo)</span><input id="pEquipo" list="equipoList" placeholder="Escribí para buscar o crear"><datalist id="equipoList"></datalist></label>
       <label class="field"><span>Día (del equipo)</span><select id="pDia"></select></label>
+      <label class="field"><span>Permiso de imagen</span><select id="pImagen"><option value="">Sin dato</option><option value="si">Sí</option><option value="no">No</option></select></label>
       <label class="field full"><span>Restricciones alimentarias (opcional)</span><input id="pRest" placeholder="Celíaco, vegano…"></label>
       <label class="field full" style="flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="pSinComida" style="width:17px;height:17px"> Sin comida (la etiqueta sale sin casilleros de Desayuno / Almuerzo / Merienda)</label>
       <div class="err full" id="pErr"></div>
@@ -594,7 +603,7 @@
         <td class="chk"><input type="checkbox" data-i="${j}" checked></td>
         <td>${m.hits[j]?hl(p.nombre,q):esc(p.nombre)}</td>
         <td>${m.hits[j]?hl(p.apellido,q):esc(p.apellido)}</td>
-        <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span>${p.ndias?` <span class="note">${p.ndias} día${p.ndias===1?'':'s'}</span>`:''}${p.sinComida?` <span class="pill stf">Sin comida</span>`:''}</td>
+        <td><span class="pill ${isDoc(p.rol)?'doc':isStaff(p.rol)?'stf':'est'}">${rolLabel(p.rol)}</span>${p.ndias?` <span class="note">${p.ndias} día${p.ndias===1?'':'s'}</span>`:''}${p.sinComida?` <span class="pill stf">Sin comida</span>`:''}${p.imagen===false?` <span class="pill" style="background:var(--warn-bg);color:var(--warn)">Sin imagen</span>`:''}</td>
         <td class="${p.restricciones?'rest':'rest none'}">${p.restricciones?esc(p.restricciones):'—'}</td>
         <td class="who">${p.acreditadoEn?`<b>✓ ${hora(p.acreditadoEn)}</b> · ${esc(porNombre(p.acreditadoPorId,p.acreditadoPor))}`:(p.impresoEn?`🖨 ${hora(p.impresoEn)} · ${esc(porNombre(p.impresoPorId,p.impresoPor))}`:'<span style="color:#a4ab9f">—</span>')}</td>
         <td class="chk">${canWrite?`<button class="editbtn" data-act="editp" data-i="${j}" title="Editar datos">✎</button>`:''}</td>
@@ -714,7 +723,7 @@
   async function exportXlsx(rows){
     const data = rows.map(({t,m}) => ({
       'Nombre': m.nombre, 'Apellido': m.apellido, 'Rol': rolLabel(m.rol), 'Equipo': t.equipo, 'Transacción': t.transaccion||'', 'Día': diaLabel(t.dia)||'',
-      'Días que asiste': m.ndias||'', 'Comidas': m.sinComida ? 'No' : 'Sí', 'Restricciones alimentarias': m.restricciones||'', 'Código ticket': m.codigo||'',
+      'Días que asiste': m.ndias||'', 'Comidas': m.sinComida ? 'No' : 'Sí', 'Permiso de imagen': m.imagen===true?'Sí':m.imagen===false?'No':'', 'Restricciones alimentarias': m.restricciones||'', 'Código ticket': m.codigo||'',
       'Hora impresión': m.impresoEn ? fecha(m.impresoEn) : '', 'Impreso por': porNombre(m.impresoPorId,m.impresoPor),
       'Hora acreditación': m.acreditadoEn ? fecha(m.acreditadoEn) : '', 'Acreditado por': porNombre(m.acreditadoPorId,m.acreditadoPor)
     }));
@@ -830,8 +839,8 @@
     doc.setLineWidth(0.5*u); doc.roundedRect(x+pad, cy, rw, rh, 1.2*u, 1.2*u, 'S'); doc.setTextColor(K);
     doc.text(rol, x+pad+3*u, cy+rh*0.7);
     doc.setTextColor(K);
-    if(p.transaccion || p.dia){ doc.setFont('helvetica','normal'); doc.setFontSize(6.5*u); doc.setTextColor(90);
-      doc.text(p.dia?diaLabel(p.dia):'', right, cy+rh*0.7, {align:'right'}); doc.setTextColor(K); }
+    if(p.dia || p.imagen!=null){ doc.setFont('helvetica','normal'); doc.setFontSize(6.5*u); doc.setTextColor(90);
+      doc.text([p.dia?diaLabel(p.dia):'', p.imagen===false?'SIN PERMISO DE IMAGEN':(p.imagen===true?'Imagen: SÍ':'')].filter(Boolean).join(' · '), right, cy+rh*0.7, {align:'right'}); doc.setTextColor(K); }
     cy += rh;
 
     // comidas: anclado abajo
@@ -880,7 +889,8 @@
       <div class="nm">${esc(capWords((p.nombre||'').trim()))}</div>
       <div class="ap">${esc(capWords((p.apellido||'').trim()))}</div>
       <div class="eq">${esc(p.equipo||'')}</div>
-      <div class="rl"><b class="${isDoc(p.rol)?'doc':''}">${rolLabel(p.rol).toUpperCase()}</b><small>${p.dia?esc(diaLabel(p.dia)):''}</small></div>
+      <div class="rl"><b class="${isDoc(p.rol)?'doc':''}">${rolLabel(p.rol).toUpperCase()}</b><small>${p.dia?esc(diaLabel(p.dia)):''}${p.imagen===true?`${p.dia?' · ':''}Imagen: SÍ`:''}</small></div>
+      ${p.imagen===false?`<div class="rs ni">SIN PERMISO DE IMAGEN</div>`:''}
       ${(p.restricciones||'').trim()?`<div class="rs">RESTRICCIÓN: ${esc(p.restricciones)}</div>`:''}
       ${comidas?`<div class="cm">${['Desayuno','Almuerzo','Merienda'].map(l=>`<div>${l}<div class="bx">${boxes}</div></div>`).join('')}</div>`:''}
     </div>`;
@@ -920,7 +930,8 @@
     cargo: ['cargo'],
     ndias: ['cant. personas','cant personas','cantidad de personas','cantidad de dias','cant. dias','dias que asiste'],
     rol: ['rol','tipo de ticket','tipo','role','perfil','categoria'],
-    restricciones: ['restric','alimentar','dieta','alergia','celiac']
+    restricciones: ['restric','alimentar','dieta','alergia','celiac'],
+    imagen: ['permiso de imagen','imagen','autoriza imagen','foto']
   };
   function mapHeaders(headers){
     const map = {};
@@ -951,10 +962,11 @@
     return data.map(r => {
       const rol = g(r,'cargo') || g(r,'rol');
       const nd = parseInt(g(r,'ndias'),10); const ndias = (nd>=1 && nd<=3) ? nd : null; const sinComida = nd === 0;
+      const im = norm(g(r,'imagen')); const imagen = /^(si|sí|s|yes|true|1|autoriza)$/.test(im) ? true : (/^(no|n|false|0)$/.test(im) ? false : null);
       const diaRaw = g(r,'dia') || (DIAS_ALL.find(d=>norm(rol).includes(d)) ? rol : '');
       const dk = diaRaw ? DIAS_ALL.find(d=>norm(diaRaw).includes(d)) || null : null;
       return { nombre: g(r,'nombre'), apellido: g(r,'apellido'), equipo: g(r,'equipo') || g(r,'equipo2'), rol, ndias,
-        dia: dk, sinComida, restricciones: g(r,'restricciones'), codigo: g(r,'codigo'), grupo: g(r,'grupo'), estado: g(r,'estado') };
+        dia: dk, sinComida, imagen, restricciones: g(r,'restricciones'), codigo: g(r,'codigo'), grupo: g(r,'grupo'), estado: g(r,'estado') };
     }).filter(p => (p.nombre || p.apellido) && !/cancel|anul|devuel|rechaz/.test(norm(p.estado)));
   }
   function groupRows(rows){
@@ -966,7 +978,7 @@
       if(!out[id]) out[id] = {id, equipo: p.equipo || '', transaccion: p.grupo || null, dia:null, miembros:[], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
       if(p.grupo && out[id].transaccion && out[id].transaccion !== p.grupo && !String(out[id].transaccion).includes(p.grupo)) out[id].transaccion = out[id].transaccion + ', ' + p.grupo;
       if(p.dia && !out[id].dia) out[id].dia = p.dia;
-      out[id].miembros.push({ord: out[id].miembros.length, nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: (p.ndias ?? null), sinComida: !!p.sinComida, restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
+      out[id].miembros.push({ord: out[id].miembros.length, nombre:p.nombre, apellido:p.apellido, rol: rolLabel(p.rol), ndias: (p.ndias ?? null), sinComida: !!p.sinComida, imagen: (p.imagen ?? null), restricciones: /^(no|ninguna|ninguno|-|n\/a|na)$/i.test(p.restricciones)?'':p.restricciones, codigo:p.codigo, estado:p.estado});
     });
     Object.values(out).forEach(t => {
       t.miembros.sort((a,b)=> (isDoc(b.rol)-isDoc(a.rol)) || a.apellido.localeCompare(b.apellido));
@@ -982,7 +994,7 @@
     Object.values(g).forEach(t => t.miembros.forEach(m => {
       const e = existing[m.codigo ? 'c:'+m.codigo : 'n:'+norm(m.nombre+' '+m.apellido)];
       if(!e){ nuevas++; return; }
-      const same = norm(e.m.nombre)===norm(m.nombre) && norm(e.m.apellido)===norm(m.apellido) && (e.m.rol||'')===(m.rol||'') && (e.m.ndias||null)===(m.ndias||null) && (e.m.restricciones||'')===(m.restricciones||'') && !!e.m.sinComida===!!m.sinComida && e.t.id===t.id;
+      const same = norm(e.m.nombre)===norm(m.nombre) && norm(e.m.apellido)===norm(m.apellido) && (e.m.rol||'')===(m.rol||'') && (e.m.ndias||null)===(m.ndias||null) && (e.m.restricciones||'')===(m.restricciones||'') && !!e.m.sinComida===!!m.sinComida && (e.m.imagen ?? null)===(m.imagen ?? null) && e.t.id===t.id;
       if(same) iguales++; else cambiadas++;
     }));
     const equiposNuevos = Object.keys(g).filter(id => !teams[id]).length;
@@ -1097,7 +1109,7 @@
     $('#personTitle').textContent = m ? 'Editar persona' : (t ? 'Agregar persona a '+t.equipo : 'Acreditación rápida');
     $('#personSub').textContent = m ? 'Los cambios se guardan en la base compartida y se ven en todas las PCs.' : 'Para personas que no figuran en la lista. Se guarda en la base compartida.';
     $('#pNombre').value = m ? m.nombre : ''; $('#pApellido').value = m ? m.apellido : '';
-    $('#pRol').value = m ? m.rol : ''; $('#pDias').value = m && m.ndias ? String(m.ndias) : '2'; $('#pSinComida').checked = !!(m && m.sinComida);
+    $('#pRol').value = m ? m.rol : ''; $('#pDias').value = m && m.ndias ? String(m.ndias) : '2'; $('#pSinComida').checked = !!(m && m.sinComida); $('#pImagen').value = m ? (m.imagen===true?'si':m.imagen===false?'no':'') : '';
     $('#pEquipo').value = t ? t.equipo : ''; $('#pRest').value = m ? (m.restricciones||'') : '';
     const syncDia = () => { const eq = $('#pEquipo').value.trim(); const tt = teams[slug(eq)]; const cur = tt ? (tt.dia||'') : (t ? (t.dia||'') : ($('#pDia').value||''));
       $('#pDia').innerHTML = '<option value="">Sin día</option>' + diasCfg().map(d=>`<option value="${esc(diaKey(d))}">${esc(d)}</option>`).join('');
@@ -1121,7 +1133,7 @@
     const nombre = $('#pNombre').value.trim(), apellido = $('#pApellido').value.trim();
     if(!nombre || !apellido){ $('#pErr').textContent = 'Nombre y apellido son obligatorios.'; return; }
     const equipo = $('#pEquipo').value.trim() || 'Sin equipo', tid = slug(equipo);
-    const rol = $('#pRol').value.trim() || 'Estudiante', ndias = +$('#pDias').value || 2, sinComida = $('#pSinComida').checked, dia = $('#pDia').value || null, restricciones = $('#pRest').value.trim();
+    const rol = $('#pRol').value.trim() || 'Estudiante', ndias = +$('#pDias').value || 2, sinComida = $('#pSinComida').checked, dia = $('#pDia').value || null, imagen = $('#pImagen').value==='si' ? true : $('#pImagen').value==='no' ? false : null, restricciones = $('#pRest').value.trim();
     const btns = $('#personForm').querySelectorAll('button'); btns.forEach(b=>b.disabled=true);
     try{
       let member;
@@ -1135,7 +1147,7 @@
       } else {
         member = {codigo: 'manual-'+Date.now().toString(36), estado: 'Manual'};
       }
-      Object.assign(member, {nombre, apellido, rol: rolLabel(rol), ndias, restricciones, sinComida});
+      Object.assign(member, {nombre, apellido, rol: rolLabel(rol), ndias, restricciones, sinComida, imagen});
       const base = teams[tid];
       const t = base ? Object.assign({}, base, {miembros: base.miembros.slice()}) : {id: tid, equipo, transaccion: null, dia: null, miembros: [], acreditado:false, acreditadoEn:null, impreso:false, impresoEn:null};
       t.dia = dia;
